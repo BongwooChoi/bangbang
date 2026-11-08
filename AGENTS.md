@@ -3,13 +3,14 @@
 ## Context
 
 - Read README.md, docs/product-brief.md, and docs/mobile-and-sharing.md before implementation.
-- This repository currently contains planning documents only. Do not invent install, build, or test commands. Add verified commands to README.md when introducing the application.
+- This is a Next.js App Router / React / TypeScript application. Use `npm ci`, `npm run dev`, `npm run typecheck`, `npm test`, and `npm run build` as appropriate. `npm run start` serves a completed production build at 127.0.0.1:3000.
 - Respond in Korean by default and preserve unrelated work.
 
 ## Product requirements
 
 - Prioritize mobile use, install-optional PWA behavior, accessible controls, and sharing.
-- Center the map on Bangbang Intersection. The northern boundary is Gangnam Station exits 1 and 8; the southern boundary is Yangjae Station exits 1 and 4. Verify coordinates before implementing the boundary; the east-west extent is not yet fixed.
+- Center the map on Bangbang Intersection. The northern boundary is Gangnam Station exits 1 and 8; the southern boundary is Yangjae Station exits 1 and 4. Verified anchor coordinates and the provisional 400m-per-side corridor are documented in docs/data-and-boundary.md.
+- Preserve the cute cream/coral/green design, rice-bowl mascot, and readable mobile controls.
 - Sharing should open useful content on this service. The user may then explicitly follow the unmodified eat.pl URL. Do not add automatic redirects or tracking parameters to eat.pl links.
 - Do not treat historical payment data as confirmed live opening hours, wait times, prices, or dietary safety.
 
@@ -23,4 +24,5 @@
 
 - Inspect the diff and run checks relevant to the change.
 - For mobile/PWA/sharing changes, distinguish automated checks from real-device verification. Never claim an untested platform works.
+- Browser automation uses ego-browser per the global agreement. Test the production build for service-worker behavior. Do not send actual social messages as part of a test.
 - Record stable setup and validation commands in this file or README.md when they are established.

@@ -10,7 +10,7 @@
 4. 저장소를 Fork하고 작은 작업 단위로 브랜치를 만듭니다.
 5. 변경 이유와 검증 결과를 적어 PR을 제출합니다.
 
-현재는 기획 단계로 앱 실행·빌드·테스트 명령이 없습니다. 앱 코드가 추가되면 README의 실제 명령을 사용하고, 문서에도 함께 반영합니다.
+Node.js 22 이상에서 `npm ci`로 설치한 뒤 `npm run dev`로 실행합니다. PR 전에 `npm run typecheck`, `npm test`, `npm run build`를 실행해 주세요. PWA 검증에는 프로덕션 빌드와 `npm run start`를 사용합니다. 자세한 환경 변수는 README를 참고합니다.
 
 ## PR에 포함할 내용
 

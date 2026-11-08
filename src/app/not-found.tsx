@@ -1,0 +1,1 @@
+export default function NotFound() { return <main className="empty-state"><span style={{fontSize:60}}>🍙</span><h1>이 길에는 아직 맛집이 없네요</h1><p>지도에서 다시 만나볼까요?</p><a className="primary-button" href="/">뱅뱅밥으로 돌아가기</a></main>; }
