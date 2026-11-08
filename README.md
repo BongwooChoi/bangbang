@@ -24,6 +24,7 @@
 - [제품 기획과 지역 범위](docs/product-brief.md)
 - [모바일 PWA와 공유 설계](docs/mobile-and-sharing.md)
 - [데이터 연동과 실제 지도 경계](docs/data-and-boundary.md)
+- [검증 결과와 남은 실기기 확인](docs/verification.md)
 - [공모전 배경과 참가 준비](docs/contest-background.md)
 - [기여 방법](CONTRIBUTING.md)
 

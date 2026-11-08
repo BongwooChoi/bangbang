@@ -5,6 +5,7 @@
 ## 확인한 항목
 
 - `npm run typecheck`, `npm test` 10개, `npm run build` 통과.
+- 공개 저장소의 [GitHub Actions 실행](https://github.com/BongwooChoi/bangbang/actions/runs/42433521214)에서도 Ubuntu·Node.js 24 환경의 설치, 타입 검사, 테스트, 빌드 통과.
 - `npm audit --omit=dev`: 알려진 취약점 0개.
 - 실제 API에서 지정 범위 안 음식점 146개 조회. 수량은 제공 데이터에 따라 달라진다.
 - 데스크톱 및 390px·360px 모바일 화면을 확인했고 가로 넘침이 없었다.
