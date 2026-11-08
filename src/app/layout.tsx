@@ -1,11 +1,19 @@
 import type { Metadata, Viewport } from 'next';
+import { IS_PREVIEW, SITE_DESCRIPTION, SITE_TITLE, SITE_URL, serializeJsonLd, websiteSchema } from '@/lib/site';
 import './globals.css';
 
-const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || (host ? `https://${host}` : 'http://localhost:3000')),
-  title: { default: '뱅뱅밥 · 우리 동네 한 끼 지도', template: '%s · 뱅뱅밥' },
-  description: '오늘 점심, 뱅뱅 돌지 말고. 뱅뱅사거리부터 강남역·양재역까지 맛집을 찾고, 담고, 같이 먹을 사람에게 공유해요.',
+  metadataBase: new URL(SITE_URL),
+  title: { default: `${SITE_TITLE} · 뱅뱅밥`, template: '%s · 뱅뱅밥' },
+  description: SITE_DESCRIPTION,
+  robots: IS_PREVIEW ? { index: false, follow: false } : { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 } },
+  verification: {
+    google: process.env.SEO_GOOGLE_VERIFICATION,
+    other: {
+      ...(process.env.SEO_NAVER_VERIFICATION && { 'naver-site-verification': process.env.SEO_NAVER_VERIFICATION }),
+      ...(process.env.SEO_BING_VERIFICATION && { 'msvalidate.01': process.env.SEO_BING_VERIFICATION }),
+    },
+  },
   applicationName: '뱅뱅밥', manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: '뱅뱅밥' },
   icons: { icon: '/icon.svg', apple: '/icons/apple-touch-icon.png' },
@@ -15,5 +23,5 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#fffdf7' };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body>{children}</body></html>;
+  return <html lang="ko"><body><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteSchema) }}/>{children}</body></html>;
 }

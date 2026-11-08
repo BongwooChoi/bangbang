@@ -27,3 +27,4 @@
 - For mobile/PWA/sharing changes, distinguish automated checks from real-device verification. Never claim an untested platform works.
 - Browser automation uses ego-browser per the global agreement. Test the production build for service-worker behavior. Do not send actual social messages as part of a test.
 - Record stable setup and validation commands in this file or README.md when they are established.
+- For SEO, metadata or public guide changes, run `npm run verify:seo` against a running production build (or pass the deployment URL). Keep canonical URLs production-only, FAQ markup consistent with visible content, and update `GUIDE_UPDATED` only when the guide changes. Keep webmaster verification files in `public/` intact.

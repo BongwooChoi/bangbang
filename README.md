@@ -25,6 +25,7 @@
 - [모바일 PWA와 공유 설계](docs/mobile-and-sharing.md)
 - [데이터 연동과 실제 지도 경계](docs/data-and-boundary.md)
 - [추천 기준·회식·고객층 필터·혼잡 안내](docs/recommendations.md)
+- [SEO·GEO와 검색 서비스 등록](docs/seo-and-geo.md)
 - [검증 결과와 남은 실기기 확인](docs/verification.md)
 - [공모전 배경과 참가 준비](docs/contest-background.md)
 - [기여 방법](CONTRIBUTING.md)
@@ -59,7 +60,8 @@ PWA의 서비스 워커는 프로덕션 실행에서만 등록됩니다. 정적 
 | `KSKILL_PROXY_BASE_URL` | 선택. 별도 k-skill 프록시 주소 |
 | `NEXT_PUBLIC_MAP_TILE_URL` | 선택. 다른 지도 타일 제공자 URL |
 | `NEXT_PUBLIC_MAP_ATTRIBUTION` | 선택. 지도 제공자의 출처 표시 |
-| `NEXT_PUBLIC_SITE_URL` | 선택. 사용자 지정 운영 도메인의 절대 URL. Vercel 기본 도메인은 자동 감지 |
+| `NEXT_PUBLIC_SITE_URL` | 선택. 사용자 지정 운영 도메인의 HTTPS origin. 기본값은 `https://bangbang-five.vercel.app` |
+| `SEO_GOOGLE_VERIFICATION` / `SEO_NAVER_VERIFICATION` / `SEO_BING_VERIFICATION` | 선택. 각 검색 서비스가 발급한 소유권 확인 메타태그의 content 값 |
 
 카카오 키가 없을 때도 기기 기본 공유 창 또는 링크 복사로 카카오톡·SNS에 공유할 수 있습니다. 모든 SNS의 직접 게시를 지원하는 것은 아닙니다. 홈 화면 설치 방식은 브라우저·기기에 따라 다릅니다.
 

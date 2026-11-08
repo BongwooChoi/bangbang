@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Explorer from '@/components/explorer';
 import { loadRestaurants } from '@/lib/eatpl';
 import { parseSharedIds, sharePath } from '@/lib/restaurants';
+import { pageMetadata } from '@/lib/site';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 const getData = cache(async () => { try { return await loadRestaurants(); } catch { return undefined; } });
@@ -13,7 +14,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const data = ids.length ? await getData() : undefined;
   const names = data?.restaurants.filter(r => ids.includes(r.id)).map(r => r.name) ?? [];
   const title = names.length ? names.join(' · ').slice(0, 120) : '함께 고른 맛집';
-  return { title, description: '오늘은 여기서 같이 한 끼 어때요? 뱅뱅사거리 주변 맛집 후보를 확인해 보세요.', openGraph: { title: `${title} · 뱅뱅밥`, description: '함께 고른 우리 동네 맛집, 바로 확인해 보세요.', url: sharePath(ids), images: ['/og-image.png'], locale: 'ko_KR', type: 'website' } };
+  return { ...pageMetadata(title, '오늘은 여기서 같이 한 끼 어때요? 뱅뱅사거리 주변 맛집 후보를 확인해 보세요.', ids.length ? sharePath(ids) : '/share'), robots: { index: false, follow: true } };
 }
 export default async function SharePage({ searchParams }: Props) {
   const params = await searchParams;
