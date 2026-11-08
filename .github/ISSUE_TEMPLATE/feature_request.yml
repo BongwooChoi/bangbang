@@ -1,0 +1,22 @@
+name: 기능 제안
+description: 더 쉽게 음식점을 고르고 공유할 아이디어를 제안해 주세요.
+title: "[Feature] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 어떤 사용자의 어떤 문제인가요?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 제안하는 경험
+      description: 모바일 이용과 공유 흐름에서 어떻게 도움이 되는지 알려 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 필요한 데이터와 고려사항
+      description: 새로운 데이터가 필요한 경우 출처와 사용 가능 여부를 함께 적어 주세요.

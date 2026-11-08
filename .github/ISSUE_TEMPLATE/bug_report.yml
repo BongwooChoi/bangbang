@@ -1,0 +1,28 @@
+name: 버그 제보
+description: 문제가 발생한 화면과 재현 방법을 알려 주세요.
+title: "[Bug] "
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 발생한 문제와 기대한 동작
+      description: 개인정보나 API 키를 포함하지 마세요.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 방법
+      placeholder: 어떤 화면에서 어떤 순서로 조작했나요?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 기기와 브라우저
+      placeholder: "예: iPhone / Safari, Android / Chrome, 카카오톡 인앱 브라우저"
+  - type: textarea
+    id: context
+    attributes:
+      label: 추가 정보
+      description: 설치형 PWA 사용 여부, 화면 예시 등을 남겨 주세요. 개인정보는 가려 주세요.
