@@ -22,11 +22,13 @@ Google 공식 안내에 따르면 AI 개요·AI 모드에도 기본 SEO가 적�
 
 ## 검색 서비스 등록과 운영
 
-Google Search Console은 URL 접두어 속성 `https://bangbang-five.vercel.app/`으로 등록한다. Google 발급 `public/google6cac55f830514a99.html`과 Bing 발급 `public/BingSiteAuth.xml`은 소유권 확인용 공개 파일이며 비밀번호나 API 비밀키가 아니다. 등록 유지에 필요하므로 임의 삭제하지 않는다.
+Google Search Console은 URL 접두어 속성 `https://bangbang-five.vercel.app/`으로 등록한다. Google 발급 `public/google6cac55f830514a99.html`, Bing 발급 `public/BingSiteAuth.xml`, 네이버 발급 `public/naver60c35f50ee62f0a7661a15391edd2c7e.html`은 소유권 확인용 공개 파일이며 비밀번호나 API 비밀키가 아니다. 등록 유지에 필요하므로 임의 삭제하지 않는다.
 
 Google은 HTML 파일 소유권 확인과 사이트맵 처리를 완료했고 2개 페이지를 발견했다(2026년 11월 8일). 이는 두 페이지의 색인 완료를 의미하지 않는다. Bing의 XML 인증 서버가 파일 접근 실패를 반환하여 홈페이지에 같은 발급 값의 `msvalidate.01` 메타태그도 제공한다.
 
-Bing 직접 메타태그 인증도 `Body tag not found`로 실패했으나, Google Search Console에서 확인된 **뱅뱅밥 속성 1개만** 가져오는 방법으로 등록에 성공했다. Bing 사이트맵 목록에서 `/sitemap.xml`의 `Imported / Processing` 상태를 확인했다. Google의 별도 홈 URL 색인 요청은 `할당량 초과`로 접수되지 않았다. 사이트맵은 정상 제출되어 있으므로 주기적인 수집 대상이며, 별도 요청은 한도 해제 후 가능하다. 네이버는 계정 로그인과 등록이 남아 있다. 검색 노출·색인 완료·AI 답변 인용까지 확인한 것으로 보고하지 않는다.
+Bing 직접 메타태그 인증도 `Body tag not found`로 실패했으나, Google Search Console에서 확인된 **뱅뱅밥 속성 1개만** 가져오는 방법으로 등록에 성공했다. Bing 사이트맵 목록에서 `/sitemap.xml`의 `Imported / Processing` 상태를 확인했다. Google의 별도 홈 URL 색인 요청은 `할당량 초과`로 접수되지 않았다. 사이트맵은 정상 제출되어 있으므로 주기적인 수집 대상이며, 별도 요청은 한도 해제 후 가능하다.
+
+네이버는 사용자 로그인·보안문자 입력 후 HTML 파일 소유권 확인을 완료했다. 서치어드바이저에서 사이트맵 등록(2026년 11월 8일 13:17)과 홈 `/`, 안내 `/guide` 수집 요청 내역(13:20~13:21)을 확인했다. 요청 접수까지 확인한 것이며, 검색 노출·색인 완료·AI 답변 인용까지 확인한 것으로 보고하지 않는다.
 
 다른 소유자나 도메인의 인증이 필요하면 `SEO_GOOGLE_VERIFICATION`, `SEO_NAVER_VERIFICATION`, `SEO_BING_VERIFICATION`에 해당 서비스가 발급한 메타태그 content 값만 입력하고 재배포한다. 네이버는 서치어드바이저 로그인과 소유권 확인을 거쳐야 한다. 토큰 설정만으로 등록이 완료되지는 않는다.
 
