@@ -40,6 +40,8 @@ HTTPS, Web App Manifest, 앱 이름, 192px·512px 아이콘, 시작 URL, standal
 | 링크 복사 | 기본 공유를 지원하지 않아도 사용 가능. 복사 성공 안내, 실패 시 선택 가능한 URL 제공 |
 | 링크 미리보기 | 우리 페이지의 제목·설명·대표 이미지를 Open Graph 메타데이터로 제공. 실제 내용과 일치하고 사용 권한이 있는 이미지 사용 |
 
+홈 링크는 ‘뱅뱅밥 · 말로 찾는 우리 동네 맛집’과 자연어 AI 검색 설명을 사용한다. 음식점 공유 페이지는 식당명·함께 식사하자는 설명을 유지한다. 공통 썸네일은 `/og-ai-search.png`(1200×630)이며 `node scripts/generate-assets.mjs`로 재생성한다. 이전 `/og-image.png`는 기존 링크 호환을 위해 남긴다. 운영 배포 후 [카카오 URL 메타 정보 관리](https://developers.kakao.com/tool/debugger/sharing)에서 홈 URL의 캐시를 초기화하고 새 미리보기를 확인한다.
+
 카카오톡 공유에는 [Kakao.Share](https://developers.kakao.com/docs/latest/ko/kakaotalk-share/js-link)를 사용한다. 자동으로 지인에게 메시지를 발송하는 기능은 만들지 않는다. 사용자가 수신자를 선택하고 전송한다. SDK를 열었다는 사실만으로 전달 성공으로 기록하지 않는다.
 
 Web Share API는 HTTPS 및 사용자 동작이 필요하고 브라우저 지원이 제한적이다. 취소는 오류 경고로 취급하지 않는다. 특정 SNS가 반드시 공유 목록에 표시되거나 링크를 특정 형태로 받아 준다고 보장하지 않는다. [MDN Web Share](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share)

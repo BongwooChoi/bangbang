@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Analytics } from '@vercel/analytics/next';
-import { IS_PREVIEW, SITE_DESCRIPTION, SITE_TITLE, SITE_URL, serializeJsonLd, websiteSchema } from '@/lib/site';
+import { IS_PREVIEW, SITE_DESCRIPTION, SITE_TITLE, SITE_URL, SOCIAL_TITLE, SOCIAL_IMAGE, serializeJsonLd, websiteSchema } from '@/lib/site';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   applicationName: '뱅뱅밥', manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: '뱅뱅밥' },
   icons: { icon: '/icon.svg', apple: '/icons/apple-touch-icon.png' },
-  openGraph: { title: '오늘 점심, 뱅뱅 돌지 말고.', description: '강남역부터 양재역까지, 우리 동네 한 끼 지도', locale: 'ko_KR', type: 'website', siteName: '뱅뱅밥', images: [{ url: '/og-image.png', width: 1200, height: 630, alt: '뱅뱅밥 우리 동네 한 끼 지도' }] },
-  twitter: { card: 'summary_large_image', title: '뱅뱅밥 · 우리 동네 한 끼 지도', images: ['/og-image.png'] },
+  openGraph: { title: SOCIAL_TITLE, description: SITE_DESCRIPTION, locale: 'ko_KR', type: 'website', siteName: '뱅뱅밥', images: [{ url: SOCIAL_IMAGE, width: 1200, height: 630, alt: '뱅뱅밥 · 원하는 한 끼, AI에게 말해보세요.' }] },
+  twitter: { card: 'summary_large_image', title: SOCIAL_TITLE, description: SITE_DESCRIPTION, images: [SOCIAL_IMAGE] },
   referrer: 'strict-origin-when-cross-origin',
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#fffdf7' };
