@@ -15,6 +15,14 @@
 - 로컬 원본 서버를 중지한 뒤 새 URL 탐색에서 오프라인 안내 표시 확인. 서버 재시작 후 음식점 목록 복구 확인.
 - 모바일 주요 버튼과 지도 마커에 접근 가능한 이름이 있는지 확인.
 
+## 공개 배포 확인
+
+- 운영 주소: https://bangbang-five.vercel.app — 기존 Vercel Hobby 계정에 배포.
+- 인증 없는 HTTP 요청에서 음식점 API 200 응답, 후보 146곳, `partial: false`, `Cache-Control: no-store` 확인.
+- 운영 주소의 390px 화면에서 가로 넘침 없이 지도 타일과 음식점 표시 확인.
+- 공유 페이지 직접 접근 시 후보 1곳 복원, 음식점 이름을 포함한 제목, 운영 도메인의 Open Graph 이미지·URL 확인.
+- Manifest 200 응답 및 standalone 설정, 서비스 워커 200 응답 및 갱신용 캐시 헤더 확인.
+
 ## 아직 실제 기기에서 확인하지 않은 항목
 
 - Android Chrome·Samsung Internet 및 iPhone Safari의 설치와 standalone 실행.
