@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import { IS_PREVIEW, SITE_DESCRIPTION, SITE_TITLE, SITE_URL, serializeJsonLd, websiteSchema } from '@/lib/site';
 import './globals.css';
 
@@ -23,5 +24,5 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#fffdf7' };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteSchema) }}/>{children}</body></html>;
+  return <html lang="ko"><body><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteSchema) }}/>{children}<Analytics /></body></html>;
 }
