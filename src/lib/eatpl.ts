@@ -19,7 +19,7 @@ async function settleWithLimit<T>(jobs: (() => Promise<T>)[]): Promise<PromiseSe
   }));
   return results;
 }
-export async function loadRestaurants(): Promise<RestaurantResponse> {
+export async function loadRestaurants(filters: { merNm?: string; merTpbuzNm?: string | null } = {}): Promise<RestaurantResponse> {
   const base = (process.env.KSKILL_PROXY_BASE_URL || 'https://k-skill-proxy.nomadamas.org').replace(/\/$/, '');
   // Base and supplemental phases share a deadline within the route's 30s budget.
   const deadline = AbortSignal.timeout(24_000);
@@ -29,6 +29,7 @@ export async function loadRestaurants(): Promise<RestaurantResponse> {
     if (rateLimited) throw new Error('upstream_rate_limited');
     const url = new URL(`${base}/v1/bccard-eatpl/search`);
     url.searchParams.set('location', location);
+    if (filters.merNm) url.searchParams.set('merNm', filters.merNm);
     if (genre) url.searchParams.set('merTpbuzNm', genre);
     const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.any([deadline, AbortSignal.timeout(12_000)]), headers: { 'Accept': 'application/json' } });
     // Do not retry or continue queued requests after a provider throttle response.
@@ -38,12 +39,12 @@ export async function loadRestaurants(): Promise<RestaurantResponse> {
     const restaurants = normalizePayload(payload);
     return { restaurants, atLimit: (payload as { items: unknown[] }).items.length >= 100 };
   }
-  const results = await Promise.allSettled(SEARCH_STREETS.map(location => search(location)));
+  const results = await Promise.allSettled(SEARCH_STREETS.map(location => search(location, filters.merTpbuzNm ?? undefined)));
   const successful = results.filter(r => r.status === 'fulfilled');
   if (!successful.length) throw new Error('restaurants_unavailable');
   // A full response can omit lower-ranked categories before our boundary filter.
   // Only saturated roads need category searches; keep the same geography.
-  const cappedStreets = SEARCH_STREETS.filter((_, i) => results[i].status === 'fulfilled' && results[i].value.atLimit);
+  const cappedStreets = filters.merTpbuzNm ? [] : SEARCH_STREETS.filter((_, i) => results[i].status === 'fulfilled' && results[i].value.atLimit);
   const supplements = await settleWithLimit(SUPPLEMENTAL_GENRES.flatMap(genre =>
     cappedStreets.map(location => () => search(location, genre))));
   const unique = new Map<string, Restaurant>();

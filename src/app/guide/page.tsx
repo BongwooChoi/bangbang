@@ -20,7 +20,7 @@ export default function GuidePage() {
       <span className="guide-eyebrow">우리 동네 한 끼 안내서</span>
       <h1>뱅뱅사거리 점심·회식·카페,<br/>이렇게 골라보세요.</h1>
       <p className="guide-lead">강남역과 양재역 사이에서 오늘의 한 끼를 고민하는 직장인을 위한 지도예요. 뱅뱅밥이 어디까지 찾고, 무엇을 근거로 추천하는지 알려드릴게요.</p>
-      <p className="guide-date">안내 업데이트 <time dateTime={GUIDE_UPDATED}>2026년 11월 8일</time></p>
+      <p className="guide-date">안내 업데이트 <time dateTime={GUIDE_UPDATED}>2026년 11월 9일</time></p>
       <nav aria-label="안내 목차" className="guide-toc">{GUIDE_FAQS.map(item => <a key={item.id} href={`#${item.id}`}>{item.question}</a>)}</nav>
       {GUIDE_FAQS.map(item => <section key={item.id} id={item.id} className="guide-section"><h2>{item.question}</h2><p>{item.answer}</p></section>)}
       <section className="guide-section"><h2>데이터 출처와 함께 만드는 방법</h2>
