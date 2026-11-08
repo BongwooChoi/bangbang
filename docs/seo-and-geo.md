@@ -24,6 +24,8 @@ Google 공식 안내에 따르면 AI 개요·AI 모드에도 기본 SEO가 적�
 
 Google Search Console은 URL 접두어 속성 `https://bangbang-five.vercel.app/`으로 등록한다. Google 발급 `public/google6cac55f830514a99.html`과 Bing 발급 `public/BingSiteAuth.xml`은 소유권 확인용 공개 파일이며 비밀번호나 API 비밀키가 아니다. 등록 유지에 필요하므로 임의 삭제하지 않는다.
 
+Google은 HTML 파일 소유권 확인과 사이트맵 처리를 완료했고 2개 페이지를 발견했다(2026년 11월 8일). 이는 두 페이지의 색인 완료를 의미하지 않는다. Bing의 XML 인증 서버가 파일 접근 실패를 반환하여 홈페이지에 같은 발급 값의 `msvalidate.01` 메타태그도 제공한다.
+
 다른 소유자나 도메인의 인증이 필요하면 `SEO_GOOGLE_VERIFICATION`, `SEO_NAVER_VERIFICATION`, `SEO_BING_VERIFICATION`에 해당 서비스가 발급한 메타태그 content 값만 입력하고 재배포한다. 네이버는 서치어드바이저 로그인과 소유권 확인을 거쳐야 한다. 토큰 설정만으로 등록이 완료되지는 않는다.
 
 등록한 검색 서비스에는 `https://bangbang-five.vercel.app/sitemap.xml`을 제출한다. 이후 홈·안내 페이지의 수집 상태와 색인 제외 원인, 검색어·클릭 실적을 확인한다. 새로 작성한 안내나 지역 범위가 달라지면 `src/lib/guide.ts`의 내용과 실제 수정일을 함께 갱신한다. 대량의 유사 지역 페이지나 근거 없는 맛집 순위를 만들지 않는다.

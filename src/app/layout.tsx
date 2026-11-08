@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     google: process.env.SEO_GOOGLE_VERIFICATION,
     other: {
       ...(process.env.SEO_NAVER_VERIFICATION && { 'naver-site-verification': process.env.SEO_NAVER_VERIFICATION }),
-      ...(process.env.SEO_BING_VERIFICATION && { 'msvalidate.01': process.env.SEO_BING_VERIFICATION }),
+      'msvalidate.01': process.env.SEO_BING_VERIFICATION || '69D062CB33939F9BF0A0C60AAF57CD20',
     },
   },
   applicationName: '뱅뱅밥', manifest: '/manifest.webmanifest',
