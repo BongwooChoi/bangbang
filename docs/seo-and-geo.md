@@ -26,6 +26,8 @@ Google Search Console은 URL 접두어 속성 `https://bangbang-five.vercel.app/
 
 Google은 HTML 파일 소유권 확인과 사이트맵 처리를 완료했고 2개 페이지를 발견했다(2026년 11월 8일). 이는 두 페이지의 색인 완료를 의미하지 않는다. Bing의 XML 인증 서버가 파일 접근 실패를 반환하여 홈페이지에 같은 발급 값의 `msvalidate.01` 메타태그도 제공한다.
 
+Bing 직접 메타태그 인증도 `Body tag not found`로 실패했으나, Google Search Console에서 확인된 **뱅뱅밥 속성 1개만** 가져오는 방법으로 등록에 성공했다. Bing 사이트맵 목록에서 `/sitemap.xml`의 `Imported / Processing` 상태를 확인했다. Google의 별도 홈 URL 색인 요청은 `할당량 초과`로 접수되지 않았다. 사이트맵은 정상 제출되어 있으므로 주기적인 수집 대상이며, 별도 요청은 한도 해제 후 가능하다. 네이버는 계정 로그인과 등록이 남아 있다. 검색 노출·색인 완료·AI 답변 인용까지 확인한 것으로 보고하지 않는다.
+
 다른 소유자나 도메인의 인증이 필요하면 `SEO_GOOGLE_VERIFICATION`, `SEO_NAVER_VERIFICATION`, `SEO_BING_VERIFICATION`에 해당 서비스가 발급한 메타태그 content 값만 입력하고 재배포한다. 네이버는 서치어드바이저 로그인과 소유권 확인을 거쳐야 한다. 토큰 설정만으로 등록이 완료되지는 않는다.
 
 등록한 검색 서비스에는 `https://bangbang-five.vercel.app/sitemap.xml`을 제출한다. 이후 홈·안내 페이지의 수집 상태와 색인 제외 원인, 검색어·클릭 실적을 확인한다. 새로 작성한 안내나 지역 범위가 달라지면 `src/lib/guide.ts`의 내용과 실제 수정일을 함께 갱신한다. 대량의 유사 지역 페이지나 근거 없는 맛집 순위를 만들지 않는다.
