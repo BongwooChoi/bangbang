@@ -21,6 +21,7 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [category, setCategory] = useState<Category>('all');
   const [zone, setZone] = useState<Zone>('all');
   const [sort, setSort] = useState('recommended');
@@ -89,8 +90,8 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
     try { localStorage.setItem('bangbang-saved', JSON.stringify(next)); }
     catch { toast('이 브라우저에서는 저장이 제한되어 이번 방문 동안만 담아둘게요.'); }
   }
-  function reset() { setQuery(''); setCategory('all'); setZone('all'); setLocalOnly(false); setSavedOnly(false); setSharedOnly(false); setGroupOnly(false); setCustomerAge('all'); setCustomerGender('all'); setSort('recommended'); }
-  function openSaved() { setSavedOnly(!savedOnly); setSharedOnly(false); setCategory('all'); setZone('all'); setQuery(''); setLocalOnly(false); setGroupOnly(false); setCustomerAge('all'); setCustomerGender('all'); setMobileTab('list'); }
+  function reset() { setQuery(''); setSearchInput(''); setCategory('all'); setZone('all'); setLocalOnly(false); setSavedOnly(false); setSharedOnly(false); setGroupOnly(false); setCustomerAge('all'); setCustomerGender('all'); setSort('recommended'); }
+  function openSaved() { setSavedOnly(!savedOnly); setSharedOnly(false); setCategory('all'); setZone('all'); setQuery(''); setSearchInput(''); setLocalOnly(false); setGroupOnly(false); setCustomerAge('all'); setCustomerGender('all'); setMobileTab('list'); }
   function draw() {
     if (!filtered.length) return toast('먼저 음식점 후보를 찾아주세요.');
     const random = new Uint32Array(1); crypto.getRandomValues(random);
@@ -130,7 +131,11 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
         <div className="hero-art" aria-hidden="true"><span className="doodle-star">✦</span><span className="doodle-text">밥 먹으러 가요!</span><div className="mascot-sticker"><Mascot size={115}/></div><span className="food-sticker">🍙</span><span className="small-flower">✿</span></div>
       </section>
       <section className="search-section" aria-label="맛집 검색과 필터">
-        <div className="search-row"><label className="search-box"><Search size={21}/><span className="sr-only">음식점 이름, 메뉴 종류 또는 주소 검색</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="어떤 한 끼가 생각나세요? 가게 이름, 음식 종류" type="search"/>{query && <button aria-label="검색어 지우기" onClick={() => setQuery('')}><X size={17}/></button>}</label><button className="random-button" aria-label="현재 조건에서 무작위로 한 곳 뽑기" title="현재 검색·필터 조건에 맞는 곳 중 무작위로 골라요" onClick={draw} disabled={loading || !filtered.length}><Shuffle size={18}/><span className="random-label">한 곳 뽑기</span><span aria-hidden="true">✦</span></button></div>
+        <div className="random-discovery">
+          <div className="random-intro"><span className="random-eyebrow">점메추가 필요할 때 ✦</span><h2>고민은 그만, 오늘은 여기!</h2><p id="random-hint" role="status">{loading ? '동네 맛집을 불러오고 있어요. 잠시만 기다려 주세요.' : !filtered.length ? '조건에 맞는 후보가 없어요. 검색어나 필터를 바꿔보세요.' : `현재 검색·필터에 맞는 ${filtered.length}곳 중 무작위로 한 집을 골라드려요.`}</p></div>
+          <button className="random-button" aria-describedby="random-hint" onClick={draw} disabled={loading || !filtered.length} aria-busy={loading}>{loading ? <RefreshCw size={21} className="spin"/> : <Shuffle size={23}/>}<span className="random-label">{loading ? '맛집 불러오는 중…' : '오늘의 한 집 뽑기'}</span><ArrowRight size={20}/></button>
+        </div>
+        <form className="search-row" role="search" onSubmit={e => { e.preventDefault(); setQuery(searchInput.trim()); setMobileTab('list'); }}><label className="search-box"><Search size={21}/><span className="sr-only">음식점 이름, 메뉴 종류 또는 주소 검색</span><input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="가게 이름, 음식 종류로 검색" type="search" enterKeyHint="search"/>{searchInput && <button type="button" aria-label="검색어 지우기" onClick={() => { setSearchInput(''); setQuery(''); }}><X size={17}/></button>}</label><button type="submit" className="search-submit">검색</button></form>
         <div className="category-row" aria-label="음식 종류">{CATEGORIES.map(c => <button key={c.id} onClick={() => setCategory(c.id)} aria-pressed={category === c.id} className={`category-chip ${category === c.id ? 'selected' : ''}`}><span>{c.emoji}</span>{c.label}</button>)}</div>
       </section>
       {sharedOnly && <div className="shared-banner"><span>💌 함께 고른 맛집 {sharedIds.length}곳이 도착했어요!</span><button onClick={() => setSharedOnly(false)}>동네 전체 보기 <ArrowRight size={15}/></button></div>}
