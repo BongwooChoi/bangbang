@@ -13,6 +13,7 @@
 - Preserve the cute cream/coral/green design, rice-bowl mascot, and readable mobile controls.
 - Sharing should open useful content on this service. The user may then explicitly follow the unmodified eat.pl URL. Do not add automatic redirects or tracking parameters to eat.pl links.
 - Do not treat historical payment data as confirmed live opening hours, wait times, prices, or dietary safety.
+- Recommendation weights and tie-breaking are documented in docs/recommendations.md. Preserve the distinction between historical busy-day and busy-period aggregates; do not infer their joint distribution or current congestion. Run npm test for ranking or filter changes.
 
 ## Data and deployment
 

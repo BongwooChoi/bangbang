@@ -7,6 +7,18 @@ import { AREA_POLYGON, CENTER, EXITS, isInArea, type Point, type Zone } from '@/
 import { categoryInfo, type Restaurant } from '@/lib/restaurants';
 
 type Props = { restaurants: Restaurant[]; selected: Restaurant | null; zone: Zone; onSelect: (r: Restaurant) => void; onNotice: (message: string) => void };
+function moveTo(instance: L.Map | null, p: Point, zoom: number) {
+  if (!instance) return;
+  instance.stop();
+  const element = instance.getContainer();
+  // Mobile list mode hides the map. Leaflet flyTo divides by its viewport size;
+  // a zero-sized viewport produces NaN coordinates and crashes the React tree.
+  if (!element.clientWidth || !element.clientHeight) {
+    instance.setView([p.lat, p.lng], zoom, { animate: false });
+  } else {
+    instance.flyTo([p.lat, p.lng], zoom, { duration: 0.4 });
+  }
+}
 export default function MapView({ restaurants, selected, zone, onSelect, onNotice }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -32,7 +44,10 @@ export default function MapView({ restaurants, selected, zone, onSelect, onNotic
     addLabel(CENTER, '✦ 뱅뱅사거리', true);
     addLabel(EXITS.gangnam8, '강남역 1·8번'); addLabel(EXITS.yangjae1, '양재역 1·4번');
     markers.current = L.layerGroup().addTo(instance);
-    const observer = new ResizeObserver(() => instance.invalidateSize()); observer.observe(container.current);
+    const observer = new ResizeObserver(() => {
+      if (!container.current?.clientWidth || !container.current.clientHeight) instance.stop();
+      instance.invalidateSize({ animate: false });
+    }); observer.observe(container.current);
     setReady(true);
     return () => { observer.disconnect(); instance.remove(); map.current = null; markers.current = null; };
   }, []);
@@ -50,10 +65,10 @@ export default function MapView({ restaurants, selected, zone, onSelect, onNotic
       marker.getElement()?.setAttribute('aria-label', `${r.name} 상세 보기`);
     });
   }, [restaurants, selected?.id, ready]);
-  useEffect(() => { if (selected && map.current) map.current.flyTo([selected.lat, selected.lng], 17, { duration: 0.45 }); }, [selected]);
+  useEffect(() => { if (selected) moveTo(map.current, selected, 17); }, [selected]);
   useEffect(() => {
     const centers = { all: CENTER, bangbang: CENTER, gangnam: { lat: 37.4956, lng: 127.0288 }, yangjae: { lat: 37.4864, lng: 127.033 } };
-    const p = centers[zone]; map.current?.flyTo([p.lat, p.lng], 16, { duration: 0.4 });
+    moveTo(map.current, centers[zone], 16);
   }, [zone]);
   function locate() {
     if (!navigator.geolocation) return onNotice('이 브라우저에서는 위치를 확인할 수 없어요.');
@@ -64,7 +79,7 @@ export default function MapView({ restaurants, selected, zone, onSelect, onNotic
       if (!map.current) return;
       locationMarker.current?.remove();
       locationMarker.current = L.circleMarker([p.lat, p.lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#4d83da', fillOpacity: 1 }).addTo(map.current);
-      map.current.flyTo([p.lat, p.lng], 17);
+      moveTo(map.current, p, 17);
     }, () => { setLocating(false); onNotice('위치 권한을 확인해 주세요. 위치 없이도 지도를 볼 수 있어요.'); }, { timeout: 8000, maximumAge: 60000 });
   }
   return <div className="map-wrapper">
@@ -74,7 +89,7 @@ export default function MapView({ restaurants, selected, zone, onSelect, onNotic
       <button onClick={() => map.current?.zoomIn()} aria-label="지도 확대"><Plus size={20}/></button>
       <button onClick={() => map.current?.zoomOut()} aria-label="지도 축소"><Minus size={20}/></button>
       <span/>
-      <button onClick={() => map.current?.flyTo([CENTER.lat, CENTER.lng], 16)} aria-label="뱅뱅사거리로 이동"><MapPin size={19}/></button>
+      <button onClick={() => moveTo(map.current, CENTER, 16)} aria-label="뱅뱅사거리로 이동"><MapPin size={19}/></button>
       <button onClick={locate} disabled={locating} aria-label="내 위치로 이동"><LocateFixed className={locating ? 'spin' : ''} size={19}/></button>
     </div>
     <div className="map-note">점선 안에서 오늘의 한 끼를 찾아요 🌱</div>

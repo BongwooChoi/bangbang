@@ -43,6 +43,13 @@ test('time validation and midnight handling', () => {
   assert.equal(estimatedHours('0765', '2000'), null);
   assert.equal(estimatedHours(null, '2000'), null);
 });
+
+test('provider customer rankings are normalized without inventing missing customer data', () => {
+  assert.deepEqual(normalizeRestaurant(example)?.customerGroups, []);
+  const result = normalizeRestaurant({ ...example, vistCstmrRnkList: { rk01: '30대여성', rk02: '60대이상남성' } });
+  assert.equal(result?.customerGroups[0].label, '30대 여성');
+  assert.equal(result?.customerGroups[1].age, '60+');
+});
 test('normalizer rejects invalid response and deduplicates merchants', () => {
   assert.throws(() => normalizePayload({ data: [] }));
   assert.equal(normalizePayload({ items: [example, example, {}, null] }).length, 1);

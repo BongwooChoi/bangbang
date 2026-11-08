@@ -1,5 +1,7 @@
 import proj4 from 'proj4';
 import { CENTER, distanceMeters, isInArea, zoneOf, type Zone } from './geo';
+import { compareRecommended } from './recommendation';
+import { matchesCustomerGroup, parseCustomerGroups, type CustomerAge, type CustomerGender, type CustomerGroup } from './customers';
 
 export const TM128 = '+proj=tmerc +lat_0=38 +lon_0=128 +k=0.9999 +x_0=400000 +y_0=600000 +ellps=bessel +towgs84=-146.43,507.89,681.46,0,0,0,0 +units=m +no_defs';
 export const CATEGORIES = [
@@ -19,6 +21,7 @@ export type Restaurant = {
   nationalRank: number | null; localRank: number | null;
   localFavorite: boolean; groupDining: boolean; foreignVisitors: boolean;
   hours: string | null; busyDay: string | null; busyTime: string | null;
+  customerGroups: CustomerGroup[];
   eatplUrl: string;
 };
 export type RestaurantResponse = { restaurants: Restaurant[]; fetchedAt: string; partial: boolean; error?: string };
@@ -68,6 +71,7 @@ export function normalizeRestaurant(value: unknown): Restaurant | null {
     localFavorite: row.loclPrsnPpltYn === true, groupDining: row.empyVsitYn === true,
     foreignVisitors: row.frnrVsitYn === true, hours: estimatedHours(row.srtTime, row.endTime),
     busyDay: text(row.congestionDwk, 10) || null, busyTime: text(row.congestionTizn, 10) || null, eatplUrl,
+    customerGroups: parseCustomerGroups(row.vistCstmrRnkList),
   };
 }
 export function normalizePayload(payload: unknown): Restaurant[] {
@@ -79,13 +83,15 @@ export function normalizePayload(payload: unknown): Restaurant[] {
   }
   return [...unique.values()];
 }
-export function filterRestaurants(rows: Restaurant[], options: { category: Category; zone: Zone; query: string; sort: string; localOnly: boolean }): Restaurant[] {
+export function filterRestaurants(rows: Restaurant[], options: { category: Category; zone: Zone; query: string; sort: string; localOnly: boolean; groupOnly?: boolean; customerAge?: CustomerAge; customerGender?: CustomerGender }): Restaurant[] {
   const q = options.query.trim().toLocaleLowerCase('ko');
   return rows.filter(r => (options.category === 'all' || r.category === options.category)
     && (options.zone === 'all' || r.zone === options.zone)
     && (!options.localOnly || r.localFavorite)
+    && (!options.groupOnly || r.groupDining)
+    && matchesCustomerGroup(r.customerGroups, options.customerAge, options.customerGender)
     && (!q || `${r.name} ${r.address} ${r.genre}`.toLocaleLowerCase('ko').includes(q)))
-    .sort((a, b) => options.sort === 'rank'
+    .sort((a, b) => options.sort === 'recommended' ? compareRecommended(a, b) : options.sort === 'rank'
       ? (a.localRank ?? 101) - (b.localRank ?? 101) || a.distance - b.distance
       : a.distance - b.distance || (a.localRank ?? 101) - (b.localRank ?? 101));
 }
