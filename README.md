@@ -50,6 +50,8 @@ npm run start
 
 PWA의 서비스 워커는 프로덕션 실행에서만 등록됩니다. 정적 화면 자원과 오프라인 안내만 캐시하며 음식점 응답과 지도 타일은 서비스 워커에 저장하지 않습니다.
 
+잇플 이동 문제를 점검할 때는 Vercel Logs에서 `/api/outbound` 또는 `eatpl_open`을 검색합니다. 링크 클릭 시도만 남기는 임시 진단이며, Hobby는 1시간만 보관하므로 누적 순사용자 통계가 아닙니다. 관련 검증은 `npx tsx --test tests/outbound.test.ts`로 실행합니다. 상세 동작과 한계는 [모바일 및 공유 설계](docs/mobile-and-sharing.md)를 참고하세요.
+
 ### 환경 변수
 
 필요한 경우 `.env.example`을 참고해 `.env.local`을 만듭니다.

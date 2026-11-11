@@ -1,4 +1,5 @@
 import { sharePath, type Restaurant } from './restaurants';
+import { SITE_URL } from './site';
 type KakaoClient = { isInitialized(): boolean; init(key: string): void; Share: { sendDefault(args: unknown): void } };
 declare global { interface Window { Kakao?: KakaoClient } }
 let sdk: Promise<void> | undefined;
@@ -17,7 +18,7 @@ function loadKakao(): Promise<void> {
 }
 export function sharedContent(rows: Restaurant[]) {
   const title = rows.length === 1 ? `${rows[0].name} · 뱅뱅밥` : `오늘 같이 먹을 맛집 ${rows.length}곳 · 뱅뱅밥`;
-  return { title, text: `${rows.map(r => r.name).join(', ')}\n우리 동네에서 같이 한 끼 어때요?`, url: `${window.location.origin}${sharePath(rows.map(r => r.id))}` };
+  return { title, text: `${rows.map(r => r.name).join(', ')}\n우리 동네에서 같이 한 끼 어때요?`, url: `${SITE_URL}${sharePath(rows.map(r => r.id))}` };
 }
 export async function kakaoShare(rows: Restaurant[]): Promise<'kakao' | 'native'> {
   const content = sharedContent(rows);
