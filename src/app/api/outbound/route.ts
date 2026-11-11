@@ -1,4 +1,5 @@
 import { parseOutboundClick } from '@/lib/outbound';
+import { persistClick } from '@/lib/click-stats';
 
 export const dynamic = 'force-dynamic';
 const headers = { 'Cache-Control': 'no-store' };
@@ -27,8 +28,12 @@ export async function POST(request: Request) {
   } catch { return new Response(null, { status: 400, headers }); }
   const event = parseOutboundClick(payload);
   if (!event) return new Response(null, { status: 400, headers });
-  // Short-lived Vercel runtime diagnostics, NOT durable analytics or verified unique users.
-  // Do not log IPs, user agents, merchant data, search text, full URLs, or browser identifiers.
-  console.info(JSON.stringify({ ...event, recordedAt: new Date().toISOString() }));
+  // Await durable storage on the server; the browser never waits before following the link.
+  try {
+    await persistClick(event);
+  } catch {
+    console.error('outbound_storage_failed');
+    return new Response(null, { status: 503, headers });
+  }
   return new Response(null, { status: 204, headers });
 }

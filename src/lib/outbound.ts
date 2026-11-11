@@ -5,6 +5,7 @@ export function browsingEnvironment(userAgent: string, standalone: boolean): Bro
 }
 
 export type OutboundClick = {
+  id?: string;
   event: 'eatpl_open';
   placement: 'list' | 'detail';
   page: 'home' | 'share';
@@ -14,12 +15,14 @@ export type OutboundClick = {
 export function parseOutboundClick(value: unknown): OutboundClick | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
-  if (Object.keys(row).length !== 5 || row.event !== 'eatpl_open'
+  if (Object.keys(row).length !== (row.id === undefined ? 5 : 6)
+    || (row.id !== undefined && (typeof row.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(row.id)))
+    || row.event !== 'eatpl_open'
     || !['list', 'detail'].includes(row.placement as string)
     || !['home', 'share'].includes(row.page as string)
     || !['browser', 'in_app', 'standalone'].includes(row.browser as string)
     || !['same_tab', 'new_tab'].includes(row.activation as string)) return null;
-  return { event: 'eatpl_open', placement: row.placement, page: row.page, browser: row.browser, activation: row.activation } as OutboundClick;
+  return { ...(row.id ? { id: row.id } : {}), event: 'eatpl_open', placement: row.placement, page: row.page, browser: row.browser, activation: row.activation } as OutboundClick;
 }
 
 type Transport = { beacon?: (url: string, body: string) => boolean; fetch: typeof fetch };
@@ -28,7 +31,8 @@ export function reportOutboundClick(payload: OutboundClick, transport: Transport
   beacon: typeof navigator !== 'undefined' && navigator.sendBeacon ? navigator.sendBeacon.bind(navigator) : undefined,
   fetch: globalThis.fetch.bind(globalThis),
 }): void {
-  const body = JSON.stringify(payload);
+  const id = payload.id ?? globalThis.crypto?.randomUUID?.();
+  const body = JSON.stringify({ ...payload, ...(id ? { id } : {}) });
   try { if (transport.beacon?.('/api/outbound', body)) return; } catch { /* Try keepalive instead. */ }
   try {
     void transport.fetch('/api/outbound', { method: 'POST', body, headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, keepalive: true, credentials: 'same-origin', cache: 'no-store' }).catch(() => { /* Navigation still proceeds. */ });

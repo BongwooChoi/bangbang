@@ -50,7 +50,7 @@ npm run start
 
 PWA의 서비스 워커는 프로덕션 실행에서만 등록됩니다. 정적 화면 자원과 오프라인 안내만 캐시하며 음식점 응답과 지도 타일은 서비스 워커에 저장하지 않습니다.
 
-잇플 이동 문제를 점검할 때는 Vercel Logs에서 `/api/outbound` 또는 `eatpl_open`을 검색합니다. 링크 클릭 시도만 남기는 임시 진단이며, Hobby는 1시간만 보관하므로 누적 순사용자 통계가 아닙니다. 관련 검증은 `npx tsx --test tests/outbound.test.ts`로 실행합니다. 상세 동작과 한계는 [모바일 및 공유 설계](docs/mobile-and-sharing.md)를 참고하세요.
+잇플 이동 버튼의 일별·누적 클릭 수는 `/api/stats`에서 조회합니다. 사용자명 `admin`, 비밀번호는 서버의 `STATS_ADMIN_TOKEN`입니다. 한국 시간 기준이며 목록/상세 버튼을 구분합니다. 이는 클릭 횟수이고 BC카드의 인정 순사용자 수는 아닙니다. 설정·검증 방법은 [클릭 통계 운영](docs/click-stats.md), 이동 동작은 [모바일 및 공유 설계](docs/mobile-and-sharing.md)를 참고하세요.
 
 ### 환경 변수
 
@@ -59,6 +59,8 @@ PWA의 서비스 워커는 프로덕션 실행에서만 등록됩니다. 정적 
 | 변수 | 용도 |
 | --- | --- |
 | `OPENAI_API_KEY` | 자연어 검색용 OpenAI API 키. 서버 전용. 운영 환경 Secret으로 저장하며 공개 변수·브라우저·저장소에 넣지 않음 |
+| `STATS_DATABASE_URL` | 서버 전용. 일별 클릭 합계를 저장하는 전용 Neon DB. Production에만 연결 |
+| `STATS_ADMIN_TOKEN` | 서버 전용. 통계 조회 비밀번호. 무작위 32자 이상, 사용자명 `admin` |
 | `NEXT_PUBLIC_KAKAO_JS_KEY` | 선택. 카카오 전용 공유 템플릿 사용. SDK·제품 링크에 운영 도메인 등록 필요 |
 | `KSKILL_PROXY_BASE_URL` | 선택. 별도 k-skill 프록시 주소 |
 | `NEXT_PUBLIC_MAP_TILE_URL` | 선택. 다른 지도 타일 제공자 URL |

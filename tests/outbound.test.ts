@@ -41,7 +41,10 @@ test('diagnostics fall back on a rejected beacon and remain non-blocking when bo
   const fallback: typeof fetch = async (url, options) => {
     fetches++;
     assert.equal(url, '/api/outbound'); assert.equal(options?.keepalive, true);
-    assert.deepEqual(JSON.parse(options?.body as string), click);
+    const body = JSON.parse(options?.body as string);
+    assert.match(body.id, /^[0-9a-f-]{36}$/);
+    delete body.id;
+    assert.deepEqual(body, click);
     throw new Error('offline');
   };
   reportOutboundClick(click, { beacon: () => true, fetch: fallback });
@@ -56,6 +59,11 @@ test('diagnostics fall back on a rejected beacon and remain non-blocking when bo
 test('click diagnostics reject foreign origins, oversized bodies and unexpected personal data', async () => {
   const messages: string[] = [];
   const original = console.info; console.info = value => { messages.push(value); };
+  const originalFetch = globalThis.fetch;
+  const originalUrl = process.env.STATS_DATABASE_URL;
+  process.env.STATS_DATABASE_URL = 'postgresql://synthetic:synthetic@example.test/test';
+  let writes = 0;
+  globalThis.fetch = async () => { writes++; return Response.json({ fields: [{ name: 'clicks', dataTypeID: 20 }], rows: [['1']] }); };
   try {
     assert.equal((await POST(request(JSON.stringify(click), 'https://foreign.test'))).status, 403);
     assert.equal((await POST(request(JSON.stringify(click), 'null'))).status, 403);
@@ -69,11 +77,12 @@ test('click diagnostics reject foreign origins, oversized bodies and unexpected 
     const response = await POST(request(JSON.stringify(click)));
     assert.equal(response.status, 204); assert.equal(response.headers.get('cache-control'), 'no-store');
     assert.equal(response.headers.get('location'), null);
-    const logged = JSON.parse(messages[0]);
-    assert.deepEqual(Object.keys(logged).sort(), [...Object.keys(click), 'recordedAt'].sort());
-    assert.equal(logged.event, 'eatpl_open'); assert.ok(!Number.isNaN(Date.parse(logged.recordedAt)));
+    assert.equal(writes, 1);
+    assert.equal(messages.length, 0);
     // Next.js may internally normalize request.url to localhost/a deployment alias.
     const rewritten = new Request('http://localhost:3000/api/outbound', { method: 'POST', headers: { host: '127.0.0.1:3000', origin: 'http://127.0.0.1:3000', 'content-type': 'text/plain' }, body: JSON.stringify(click) });
     assert.equal((await POST(rewritten)).status, 204);
-  } finally { console.info = original; }
+  } finally { console.info = original; globalThis.fetch = originalFetch;
+    if (originalUrl === undefined) delete process.env.STATS_DATABASE_URL; else process.env.STATS_DATABASE_URL = originalUrl;
+  }
 });
