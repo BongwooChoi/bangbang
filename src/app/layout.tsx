@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   applicationName: '뱅뱅밥', manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: '뱅뱅밥' },
   icons: { icon: '/icon.svg', apple: '/icons/apple-touch-icon.png' },
-  openGraph: { title: SOCIAL_TITLE, description: SITE_DESCRIPTION, locale: 'ko_KR', type: 'website', siteName: '뱅뱅밥', images: [{ url: SOCIAL_IMAGE, width: 1200, height: 630, alt: '뱅뱅밥 · 원하는 한 끼, AI에게 말해보세요.' }] },
+  openGraph: { title: SOCIAL_TITLE, description: SITE_DESCRIPTION, locale: 'ko_KR', type: 'website', siteName: '뱅뱅밥', images: [{ url: SOCIAL_IMAGE, width: 1200, height: 630, alt: '뱅뱅밥 · 30대 여성이 많이 찾는 카페? 카드 데이터와 AI로 찾아요.' }] },
   twitter: { card: 'summary_large_image', title: SOCIAL_TITLE, description: SITE_DESCRIPTION, images: [SOCIAL_IMAGE] },
   referrer: 'strict-origin-when-cross-origin',
 };
