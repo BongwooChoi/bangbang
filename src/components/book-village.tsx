@@ -15,9 +15,10 @@ const shops: {category: Category; label: string; emoji: string; x: number; y: nu
 
 export function BookVillage({ onBrowse, onDraw, count, busy, error, onRetry }: { onBrowse: (category: Category) => void; onDraw: () => void; count: number; busy: boolean; error: string; onRetry: () => void }) {
   const [angle, setAngle] = useState(-20);
+  const [tilt, setTilt] = useState(0);
   const [paused, setPaused] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const gesture = useRef<{ id: number; x: number; y: number; angle: number; rotating: boolean } | null>(null);
+  const gesture = useRef<{ id: number; x: number; y: number; angle: number; tilt: number; rotating: boolean } | null>(null);
   const suppressClick = useRef(false);
   function endDrag(event: PointerEvent<HTMLDivElement>) {
     if (gesture.current?.id !== event.pointerId) return;
@@ -35,7 +36,7 @@ export function BookVillage({ onBrowse, onDraw, count, busy, error, onRetry }: {
     }
     if (event.button !== 0) return;
     suppressClick.current = false;
-    gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, angle, rotating: false };
+    gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, angle, tilt, rotating: false };
   }
   function moveDrag(event: PointerEvent<HTMLDivElement>) {
     const active = gesture.current;
@@ -43,17 +44,25 @@ export function BookVillage({ onBrowse, onDraw, count, busy, error, onRetry }: {
     const dx = event.clientX - active.x, dy = event.clientY - active.y;
     if (!active.rotating) {
       if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return;
-      // Leave vertical swipes to normal page scrolling, even if they later curve.
-      if (Math.abs(dy) >= Math.abs(dx)) { gesture.current = null; return; }
       active.rotating = true; suppressClick.current = true;
       event.currentTarget.setPointerCapture(event.pointerId);
       setDragging(true);
     }
     setAngle(Math.max(-38, Math.min(16, active.angle + dx * .25)));
+    setTilt(Math.max(-20, Math.min(18, active.tilt + dy * .2)));
   }
   return <div className={`village-chapter ${paused ? 'village-paused' : ''}`}>
     <div className="village-heading"><span className="book-kicker">CHAPTER 01 · 우리 동네 한 끼</span><h1>오늘은 어느 집을<br className="village-break"/> 펼쳐볼까요?</h1><p>뱅뱅사거리부터 강남역·양재역까지.<br/>책 속 가게를 누르면 맛집이 펼쳐져요.</p></div>
-    <div className={`world-camera ${dragging ? 'is-dragging' : ''}`} style={{ '--village-angle': `${angle}deg` } as CSSProperties}
+    <div className={`world-camera ${dragging ? 'is-dragging' : ''}`} style={{ '--village-angle': `${angle}deg`, '--village-tilt': `${tilt}deg` } as CSSProperties}
+      tabIndex={0} role="group" aria-label="입체 동네. 상하좌우로 드래그하거나 방향키로 회전해요. Home 키로 시점을 초기화해요."
+      onKeyDown={event => {
+        if (event.target !== event.currentTarget) return;
+        if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(event.key)) return;
+        event.preventDefault();
+        if (event.key === 'Home') { setAngle(-20); setTilt(0); }
+        else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') setAngle(v => Math.max(-38, Math.min(16, v + (event.key === 'ArrowLeft' ? -12 : 12))));
+        else setTilt(v => Math.max(-20, Math.min(18, v + (event.key === 'ArrowUp' ? -8 : 8))));
+      }}
       onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}
       onLostPointerCapture={event => { if (event.target === event.currentTarget) endDrag(event); }}
       onPointerLeave={() => { if (!gesture.current?.rotating) gesture.current = null; }}
@@ -81,7 +90,7 @@ export function BookVillage({ onBrowse, onDraw, count, busy, error, onRetry }: {
       </div>
       <div className="world-location location-north">강남역 <span>↑</span></div><div className="world-location location-south"><span>↓</span> 양재역</div>
     </div>
-    <div className="village-controls"><button onClick={()=>setAngle(v=>Math.max(-38,v-12))} disabled={angle<=-38} aria-label="동네 왼쪽으로 돌리기"><ArrowLeft size={16}/></button><span>좌우로 밀어 회전 · 가게를 톡</span><button onClick={()=>setAngle(v=>Math.min(16,v+12))} disabled={angle>=16} aria-label="동네 오른쪽으로 돌리기"><ArrowRight size={16}/></button><button className="world-motion" aria-label={paused?'팝업북 움직임 켜기':'팝업북 움직임 끄기'} aria-pressed={paused} onClick={()=>setPaused(!paused)}>{paused?<Play size={14}/>:<Pause size={14}/>}</button></div>
+    <div className="village-controls"><button onClick={()=>setAngle(v=>Math.max(-38,v-12))} disabled={angle<=-38} aria-label="동네 왼쪽으로 돌리기"><ArrowLeft size={16}/></button><span>상하좌우로 회전 · 가게를 톡</span><button onClick={()=>setAngle(v=>Math.min(16,v+12))} disabled={angle>=16} aria-label="동네 오른쪽으로 돌리기"><ArrowRight size={16}/></button><button className="world-motion" aria-label={paused?'팝업북 움직임 켜기':'팝업북 움직임 끄기'} aria-pressed={paused} onClick={()=>setPaused(!paused)}>{paused?<Play size={14}/>:<Pause size={14}/>}</button></div>
     <div className="village-actions"><button className="world-draw" onClick={onDraw} disabled={busy||!count}><Shuffle size={21}/>{busy?'맛집을 펼치는 중…':'오늘의 한 집 뽑기'}<ArrowRight size={18}/></button><button className="world-search" onClick={()=>onBrowse('all')}><Search size={18}/>원하는 조건으로 찾기</button></div>
     <p className="village-status" role="status">{error?<>{error} <button onClick={onRetry}>다시 불러오기</button></>:busy?'동네 맛집 정보를 가져오고 있어요.':`${count}곳의 후보 · 한 집 뽑기는 현재 후보에서 무작위로 골라요.`}</p>
   </div>;
