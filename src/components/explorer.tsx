@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
-import { ArrowDownUp, ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, Copy, ExternalLink, Heart, Info, List, Map as MapIcon, MessageCircle, RefreshCw, Search, Share2, Shuffle, Smartphone, UsersRound, X } from 'lucide-react';
+import { ArrowDownUp, ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, Copy, ExternalLink, Heart, Info, List, Map as MapIcon, MessageCircle, RefreshCw, Search, Share2, Shuffle, SlidersHorizontal, Smartphone, UsersRound, X } from 'lucide-react';
 import { CATEGORIES, categoryInfo, filterRestaurants, type Category, type Restaurant, type RestaurantResponse } from '@/lib/restaurants';
 import type { Zone } from '@/lib/geo';
 import { kakaoShare, sharedContent } from '@/lib/sharing';
@@ -15,13 +15,15 @@ import { MAX_SEARCH_LENGTH, searchIntentLabels, type SearchIntent } from '@/lib/
 import { EatplLink } from './eatpl-link';
 import { BrowserNotice } from './browser-notice';
 import { RestaurantNextStep } from './restaurant-next-step';
-import { PaperTown } from './paper-town';
+import { BookVillage } from './book-village';
 
 const MapView = dynamic(() => import('./map-view'), { ssr: false, loading: () => <div className="map-loading"><Mascot/><span>동네 지도를 펼치는 중이에요…</span></div> });
 const zones: { id: Zone; label: string }[] = [{ id: 'all', label: '동네 전체' }, { id: 'bangbang', label: '뱅뱅사거리' }, { id: 'gangnam', label: '강남역 쪽' }, { id: 'yangjae', label: '양재역 쪽' }];
 type InstallEvent = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }> };
 
 export default function Explorer({ initialData, sharedIds = [], children }: { initialData?: RestaurantResponse; sharedIds?: string[]; children?: ReactNode }) {
+  const [chapter, setChapter] = useState<'town' | 'search' | 'saved'>(sharedIds.length ? 'search' : 'town');
+  const bookScroll = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<RestaurantResponse | undefined>(initialData);
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState('');
@@ -46,7 +48,7 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
   const [infoOpen, setInfoOpen] = useState(false);
   const [installOpen, setInstallOpen] = useState(false);
   const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null);
-  const [mobileTab, setMobileTab] = useState<'map' | 'list'>('map');
+  const [mobileTab, setMobileTab] = useState<'map' | 'list'>('list');
   const [visibleCount, setVisibleCount] = useState(20);
   const [notice, setNotice] = useState('');
   const [copied, setCopied] = useState(false);
@@ -104,7 +106,13 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
   }
   function clearSearch() { searchRequest.current?.abort(); searchRequest.current = null; setSearchBusy(false); setSearchInput(''); setSearchData(undefined); setSearchIntent(undefined); setSearchError(''); }
   function reset() { clearSearch(); setCategory('all'); setZone('all'); setLocalOnly(false); setSavedOnly(false); setSharedOnly(false); setGroupOnly(false); setCustomerAge('all'); setCustomerGender('all'); setSort('recommended'); }
-  function openSaved() { const next = !savedOnly; reset(); setSavedOnly(next); setMobileTab('list'); }
+  function turnPage(next: 'town' | 'search' | 'saved') {
+    if (next === 'town' || next === 'saved') reset();
+    setSavedOnly(next === 'saved'); setChapter(next); setMobileTab('list');
+    requestAnimationFrame(() => { bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' }); document.getElementById(next === 'town' ? 'town-page' : 'search-page')?.focus({ preventScroll: true }); });
+  }
+  function browseCategory(next: Category) { reset(); setCategory(next); setChapter('search'); setMobileTab('list'); requestAnimationFrame(() => { bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' }); document.getElementById('search-page')?.focus({ preventScroll: true }); }); }
+  function openSaved() { turnPage(chapter === 'saved' ? 'town' : 'saved'); }
   async function search() {
     if (!searchInput.trim()) { reset(); return; }
     searchRequest.current?.abort();
@@ -144,7 +152,7 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
   }
   const distance = (r: Restaurant) => r.distance >= 1000 ? `${(r.distance / 1000).toFixed(1)}km` : `${r.distance}m`;
   return <>
-    <a href="#results" className="skip-link">음식점 목록으로 건너뛰기</a>
+    <a href="#results" className="skip-link" onClick={e => { e.preventDefault(); turnPage('search'); requestAnimationFrame(() => { document.getElementById('results')?.focus(); }); }}>음식점 목록으로 건너뛰기</a>
     <header className="site-header">
       <a href="/" className="brand" aria-label="뱅뱅밥 홈"><Mascot size={47}/><span>뱅뱅밥<small>우리 동네 한 끼 지도</small></span><span className="beta">BETA</span></a>
       <nav className="header-nav" aria-label="주 메뉴">
@@ -153,16 +161,27 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
         <button className="install-button" onClick={install}><Smartphone size={16}/><span>홈 화면에 쏙</span></button>
       </nav>
     </header>
-    <main className="page-shell">
-      <section className="hero paper-hero" aria-labelledby="hero-title">
-        <div className="hero-copy"><span className="eyebrow"><span/> 강남역부터 양재역까지, 한 끼 산책</span><h1 id="hero-title">오늘 점심,<br/> <span>한 장 펼쳐볼까요?</span></h1><p>뱅뱅사거리의 맛있는 곳들을 모은 작은 수첩.<br/>카드 데이터로 찾고, 마음에 드는 한 집을 담아요.</p><p className="hero-footnote"><span/> 검색은 구체적으로, 점메추는 가볍게.</p></div>
-        <PaperTown/>
-      </section>
+    <main className="book-experience" data-chapter={chapter}>
+      {sharedOnly && <div className="shared-banner"><span>💌 함께 고른 맛집 {sharedIds.length}곳이 도착했어요!</span><button onClick={() => setSharedOnly(false)}>동네 전체 보기 <ArrowRight size={15}/></button></div>}
+      {sharedOnly && !loading && missingShared.length > 0 && <p className="inline-notice">공유된 후보 중 {missingShared.length}곳은 현재 검색 결과에서 찾지 못했어요. 다른 후보를 둘러보세요.</p>}
+      {activeData?.partial && <p className="inline-notice">일부 음식점 정보를 가져오지 못했어요. 현재 확인된 후보부터 보여드려요.</p>}
+      {updateAvailable && <div className="shared-banner"><span>새로운 뱅뱅밥이 준비됐어요.</span><button onClick={() => { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true }); updateAvailable.postMessage({ type: 'SKIP_WAITING' }); }}>업데이트하기</button></div>}
+      <BrowserNotice/>
+      <div className="book-workspace">
+        <nav className="book-tabs" aria-label="팝업북 책갈피">
+          <button aria-current={chapter === 'town' ? 'page' : undefined} onClick={() => turnPage('town')}><MapIcon size={17}/><span>동네 펼치기</span><small>01</small></button>
+          <button aria-current={chapter === 'search' ? 'page' : undefined} onClick={() => turnPage('search')}><Search size={17}/><span>맛집 찾기</span><small>02</small></button>
+          <button aria-current={chapter === 'saved' ? 'page' : undefined} onClick={() => turnPage('saved')}><Bookmark size={17}/><span>나의 수첩</span><small>{saved.length}</small></button>
+        </nav>
+        <div className="open-book">
+          <div className="book-spine" aria-hidden="true"/>
+          <div className="book-page-scroll" ref={bookScroll}>
+            <section id="town-page" className="book-leaf town-leaf" hidden={chapter !== 'town'} tabIndex={-1} aria-label="동네 펼치기">
+              <BookVillage onBrowse={browseCategory} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>
+            </section>
+            <div id="search-page" className={'book-leaf search-leaf ' + (chapter === 'saved' ? 'saved-leaf' : '')} hidden={chapter === 'town'} tabIndex={-1}>
+              <div className="chapter-heading"><div><span className="book-kicker">{chapter === 'saved' ? 'CHAPTER 03 · 나의 수첩' : 'CHAPTER 02 · 맛집 찾기'}</span><h2>{chapter === 'saved' ? '다음에 또, 이 집.' : category === 'all' ? '한 끼를 찾아요' : `${categoryInfo(category).label} 맛집 찾기`}</h2></div><div className="chapter-actions">{chapter === 'search' && <button className="chapter-draw" onClick={draw} disabled={loading || searchBusy || !filtered.length} aria-label="현재 조건에서 한 집 뽑기" title="현재 검색·필터에 맞는 후보에서 무작위로 골라요"><Shuffle size={16}/><span>한 집 뽑기</span></button>}<button className="chapter-back" aria-label="동네 책장으로 돌아가기" onClick={() => turnPage('town')}><ArrowRight size={16}/>동네로</button></div></div>
       <section className="search-section" aria-label="맛집 검색과 필터">
-        <div className="random-discovery">
-          <div className="random-intro"><span className="random-eyebrow">점메추가 필요할 때 ✦</span><h2>고민은 그만, 오늘은 여기!</h2><p id="random-hint" role="status">{loading ? '동네 맛집을 불러오고 있어요. 잠시만 기다려 주세요.' : !filtered.length ? '조건에 맞는 후보가 없어요. 검색어나 필터를 바꿔보세요.' : `현재 검색·필터에 맞는 ${filtered.length}곳 중 무작위로 한 집을 골라드려요.`}</p></div>
-          <button className="random-button" aria-describedby="random-hint" onClick={draw} disabled={loading || searchBusy || !filtered.length} aria-busy={loading || searchBusy}>{loading ? <RefreshCw size={21} className="spin"/> : <Shuffle size={23}/>}<span className="random-label">{loading ? '맛집 불러오는 중…' : '오늘의 한 집 뽑기'}</span><ArrowRight size={20}/></button>
-        </div>
         <p className="ai-search-label">✦ 누가 많이 찾는 곳인지도 물어보세요</p>
         <form className="search-row" role="search" onSubmit={e => { e.preventDefault(); void search(); }} aria-busy={searchBusy}><label className="search-box"><Search size={21}/><span className="sr-only">원하는 맛집 조건을 자연어로 입력</span><input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="30대 여성이 많이 찾는 카페" type="search" enterKeyHint="search" maxLength={MAX_SEARCH_LENGTH} aria-describedby="ai-search-help"/>{searchInput && <button type="button" aria-label="검색어 지우기" onClick={reset}><X size={17}/></button>}</label><button type="submit" className="search-submit" aria-label="AI 검색" disabled={searchBusy}>{searchBusy ? <RefreshCw size={17} className="spin"/> : 'AI 검색'}</button></form>
         <p id="ai-search-help" className="ai-search-help">연령·성별·단골까지, 카드 결제 데이터로 찾아요.<br/>입력한 문장은 해석을 위해 OpenAI로 전송돼요. 개인정보는 넣지 말아주세요.</p>
@@ -171,23 +190,18 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
         {searchIntent && <div className="ai-search-result" role="status"><div><strong>이렇게 찾아봤어요</strong><button onClick={reset}>조건 지우기 <X size={13}/></button></div><p>{searchIntentLabels(searchIntent).join(' · ')}</p>{searchIntent.unsupported.length > 0 && <p className="ai-search-caveat">확인할 수 없는 조건: {searchIntent.unsupported.join(', ')}. 아래 후보는 이 조건의 충족을 보장하지 않아요.</p>}<small>아래 필터로 결과를 더 좁힐 수 있어요. 업종·가게명 조건을 바꾸려면 다시 검색해 주세요.</small></div>}
         <div className="category-row" aria-label="음식 종류">{CATEGORIES.map(c => <button key={c.id} onClick={() => setCategory(c.id)} aria-pressed={category === c.id} className={`category-chip ${category === c.id ? 'selected' : ''}`}><span>{c.emoji}</span>{c.label}</button>)}</div>
       </section>
-      {sharedOnly && <div className="shared-banner"><span>💌 함께 고른 맛집 {sharedIds.length}곳이 도착했어요!</span><button onClick={() => setSharedOnly(false)}>동네 전체 보기 <ArrowRight size={15}/></button></div>}
-      {sharedOnly && !loading && missingShared.length > 0 && <p className="inline-notice">공유된 후보 중 {missingShared.length}곳은 현재 검색 결과에서 찾지 못했어요. 다른 후보를 둘러보세요.</p>}
-      {activeData?.partial && <p className="inline-notice">일부 음식점 정보를 가져오지 못했어요. 현재 확인된 후보부터 보여드려요.</p>}
-      {updateAvailable && <div className="shared-banner"><span>새로운 뱅뱅밥이 준비됐어요.</span><button onClick={() => { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true }); updateAvailable.postMessage({ type: 'SKIP_WAITING' }); }}>업데이트하기</button></div>}
-      <BrowserNotice/>
       <section className="explore" aria-label="맛집 탐색">
-        <div className="explore-toolbar"><div className="zone-tabs" aria-label="동네 선택">{zones.map(z => <button key={z.id} aria-pressed={zone === z.id} className={zone === z.id ? 'active' : ''} onClick={() => setZone(z.id)}>{z.label}</button>)}</div><div className="discovery-filters"><button className={`local-toggle ${localOnly ? 'active' : ''}`} aria-pressed={localOnly} onClick={() => setLocalOnly(!localOnly)}><Heart size={15}/> 동네 단골 많은 곳</button><button className={`local-toggle group-toggle ${groupOnly ? 'active' : ''}`} aria-pressed={groupOnly} onClick={() => setGroupOnly(!groupOnly)}><UsersRound size={15}/> 회식 후보</button><RecommendationHelp/></div></div>
+        <details className="book-filter-drawer"><summary><SlidersHorizontal size={15}/> 방문 고객층·동네·단골 조건<span>{[customerAge !== 'all', customerGender !== 'all', zone !== 'all', localOnly, groupOnly].filter(Boolean).length || ''}</span><ChevronDown size={14}/></summary><div className="explore-toolbar"><div className="zone-tabs" aria-label="동네 선택">{zones.map(z => <button key={z.id} aria-pressed={zone === z.id} className={zone === z.id ? 'active' : ''} onClick={() => setZone(z.id)}>{z.label}</button>)}</div><div className="discovery-filters"><button className={`local-toggle ${localOnly ? 'active' : ''}`} aria-pressed={localOnly} onClick={() => setLocalOnly(!localOnly)}><Heart size={15}/> 동네 단골 많은 곳</button><button className={`local-toggle group-toggle ${groupOnly ? 'active' : ''}`} aria-pressed={groupOnly} onClick={() => setGroupOnly(!groupOnly)}><UsersRound size={15}/> 회식 후보</button><RecommendationHelp/></div></div>
         {groupOnly && <p className="filter-explanation">저녁 시간대 단체 결제 이력이 있는 곳이에요. 좌석·예약 가능 여부는 매장에 확인해 주세요.</p>}
         <CustomerFilter age={customerAge} gender={customerGender} onAge={setCustomerAge} onGender={setCustomerGender}/>
-        <div className="mobile-view-switch"><button aria-pressed={mobileTab === 'list'} onClick={() => setMobileTab('list')}><List size={16}/>목록으로</button><button aria-pressed={mobileTab === 'map'} onClick={() => setMobileTab('map')}><MapIcon size={16}/>지도로</button></div>
+        </details><div className="mobile-view-switch"><button aria-pressed={mobileTab === 'list'} onClick={() => setMobileTab('list')}><List size={16}/>목록으로</button><button aria-pressed={mobileTab === 'map'} onClick={() => setMobileTab('map')}><MapIcon size={16}/>지도로</button></div>
         <div className={`explore-grid mobile-${mobileTab}`}>
           <div className="results-panel" id="results" tabIndex={-1}>
             <div className="results-heading"><h2>{savedOnly ? '담아둔 맛집' : sharedOnly ? '함께 고른 맛집' : '오늘의 맛집 후보'} <span>{loading && !data ? '…' : filtered.length}</span></h2><div className="result-actions"><button className="icon-button" aria-label="음식점 새로고침" onClick={() => void (searchIntent ? search() : refresh())} disabled={loading || searchBusy}><RefreshCw size={15} className={loading ? 'spin' : ''}/></button><label className="sort-select"><ArrowDownUp size={13}/><span className="sr-only">정렬</span><select value={sort} onChange={e => setSort(e.target.value)}><option value="recommended">뱅뱅 추천순</option><option value="distance">사거리 가까운 순</option><option value="rank">지역 매출 상위순</option></select><ChevronDown size={12}/></label></div></div>
             <p className="results-caption">{sort === 'recommended' ? '가까움 + 지역 매출 순위 + 동네 단골을 함께 살폈어요.' : '거리 기준은 뱅뱅사거리에서의 직선거리예요.'}</p>
             {savedOnly && savedRows.length > 0 && <button className="saved-share" onClick={() => setShareRows(savedRows.slice(0, 5))}><Share2 size={15}/> 담은 맛집 함께 공유하기 {savedRows.length > 5 && '(앞의 5곳)'}</button>}
             <div className="results-list" aria-busy={loading || searchBusy}>
-              {loading && !data ? <div className="loading-state"><Mascot size={85}/><h3>맛있는 한 끼를 찾고 있어요</h3><p>동네 음식점 정보를 확인하는 중이에요.</p><span className="loading-dots">● ● ●</span></div> : visibleError ? <div className="empty-state"><Mascot size={80} happy={false}/><h3>잠깐, 연결이 쉬어가고 있어요</h3><p>{visibleError}</p><button className="primary-button" onClick={() => void refresh()}>다시 불러오기</button></div> : filtered.length === 0 ? <div className="empty-state"><Mascot size={80} happy={false}/><h3>{savedOnly ? '마음에 드는 곳을 담아보세요' : '이 조건의 맛집은 아직 없어요'}</h3><p>{savedOnly ? '카드의 책갈피를 누르면 이곳에 모여요. 저장한 곳도 현재 조회 결과에 있어야 표시돼요.' : '지역이나 음식 종류를 바꿔 찾아볼까요?'}</p><button className="primary-button" onClick={reset}>동네 맛집 둘러보기</button></div> : filtered.slice(0, visibleCount).map(r => <article key={r.id} className={`restaurant-card ${selected?.id === r.id ? 'card-selected' : ''}`}>
+              {loading && !data ? <div className="loading-state"><Mascot size={85}/><h3>맛있는 한 끼를 찾고 있어요</h3><p>동네 음식점 정보를 확인하는 중이에요.</p><span className="loading-dots">● ● ●</span></div> : visibleError ? <div className="empty-state"><Mascot size={80} happy={false}/><h3>잠깐, 연결이 쉬어가고 있어요</h3><p>{visibleError}</p><button className="primary-button" onClick={() => void refresh()}>다시 불러오기</button></div> : filtered.length === 0 ? <div className="empty-state"><Mascot size={80} happy={false}/><h3>{savedOnly ? '마음에 드는 곳을 담아보세요' : '이 조건의 맛집은 아직 없어요'}</h3><p>{savedOnly ? '카드의 책갈피를 누르면 이곳에 모여요. 저장한 곳도 현재 조회 결과에 있어야 표시돼요.' : '지역이나 음식 종류를 바꿔 찾아볼까요?'}</p><button className="primary-button" onClick={() => browseCategory('all')}>동네 맛집 둘러보기</button></div> : filtered.slice(0, visibleCount).map(r => <article key={r.id} className={`restaurant-card ${selected?.id === r.id ? 'card-selected' : ''}`}>
                 <button className={`food-art food-art-${r.category}`} onClick={() => setSelected(r)} aria-label={`${r.name} 상세 보기`}><span>{categoryInfo(r.category).emoji}</span><small>{r.genre}</small></button>
                 <div className="card-main"><div className="card-top"><span className="card-area">{zones.find(z => z.id === r.zone)?.label} · {distance(r)}</span><button className={`save-button ${saved.includes(r.id) ? 'is-saved' : ''}`} aria-label={`${r.name} ${saved.includes(r.id) ? '담기 해제' : '담기'}`} aria-pressed={saved.includes(r.id)} onClick={() => toggleSave(r)}><Bookmark size={18} fill={saved.includes(r.id) ? 'currentColor' : 'none'}/></button></div><button className="restaurant-name" onClick={() => setSelected(r)}>{r.name}<ChevronRight size={15}/></button><div className="card-badges">{r.localFavorite && <span className="badge-green">🌱 동네 단골</span>}{r.localRank !== null && <span className="badge-peach">지역 상위 {r.localRank}%</span>}{r.groupDining && <span className="badge-purple">회식 후보</span>}</div><RecommendationReasons restaurant={r}/><BusySummary restaurant={r}/><CustomerMatch groups={r.customerGroups} age={customerAge} gender={customerGender}/><div className="card-bottom"><span>{r.genre}</span><button onClick={() => setShareRows([r])} aria-label={`${r.name} 공유`}><Share2 size={13}/> 공유</button></div><EatplLink className="card-visit" href={r.eatplUrl} placement="list" aria-label={`${r.name} 잇플에서 AI 요약·메뉴·지도 보기`}>AI 요약·메뉴·지도 보기 <span>잇플 <ExternalLink size={13}/></span></EatplLink></div>
               </article>)}
@@ -198,8 +212,13 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
           <div className="map-panel">{!loading && !error && data && filtered.length === 0 && <div className="map-empty-state" role="status"><p>이 조건에 맞는 맛집은 아직 없어요.<br/>고객층이나 다른 필터를 바꿔볼까요?</p><button className="secondary-button" onClick={reset}>필터 모두 초기화</button></div>}{!loading && !error && <RecommendedPick restaurant={recommended} onSelect={setSelected}/>}<MapView restaurants={filtered} selected={selected} zone={zone} onSelect={setSelected} onNotice={toast}/><div className="map-footer"><span><i/> 강남역 1·8번 ↔ 양재역 1·4번 출구 사이</span><button onClick={() => setInfoOpen(true)}>범위 안내 <Info size={13}/></button></div></div>
         </div>
       </section>
+            </div>
+          </div>
+          <div className="book-page-footer"><span>뱅뱅밥 · 우리 동네 맛집 팝업북</span><span>{chapter === 'town' ? '01' : chapter === 'search' ? '02' : '03'} / 03</span></div>
+        </div>
+      </div>
       <section className="bottom-note"><span>한 끼의 고민은 작게, 맛있는 발견은 크게.</span><span>우리 동네에서 잘 먹고, 잘 지내요 <span aria-hidden="true">☘</span></span></section>
-      {children}
+      <details className="book-about"><summary>뱅뱅사거리 맛집 지도 · 데이터와 이용 안내</summary>{children}</details>
       <footer className="site-footer"><span>뱅뱅밥 · 같이 만드는 동네 지도</span><div><a href="/guide">지역·추천 안내</a><a href="https://github.com/BongwooChoi/bangbang" target="_blank" rel="noopener noreferrer">GitHub에서 함께 만들기 <ExternalLink size={12}/></a><button onClick={() => setInfoOpen(true)}>데이터·이용 안내</button></div></footer>
     </main>
     {selected && <Dialog title="오늘은 여기 어때요?" onClose={() => setSelected(null)} footer={<RestaurantNextStep restaurant={selected} onBack={() => setSelected(null)} onShare={() => { setShareRows([selected]); setSelected(null); }}/> }><div className={`detail-art food-art-${selected.category}`}><span>{categoryInfo(selected.category).emoji}</span><span className="detail-art-note">맛있는 발견!</span></div><div className="detail-title"><div><span className="card-area">{selected.genre} · 사거리에서 직선 {distance(selected)}</span><h3>{selected.name}</h3></div><button className={`save-button ${saved.includes(selected.id) ? 'is-saved' : ''}`} onClick={() => toggleSave(selected)} aria-label={`${selected.name} ${saved.includes(selected.id) ? '담기 해제' : '담기'}`} aria-pressed={saved.includes(selected.id)}><Bookmark fill={saved.includes(selected.id) ? 'currentColor' : 'none'}/></button></div><p className="detail-address">{selected.address}</p><RecommendationReasons restaurant={selected}/><div className="rank-grid"><div><small>전국 동일 업종 매출</small><strong>{selected.nationalRank === null ? '미확인' : `상위 ${selected.nationalRank}%`}</strong></div><div><small>시·군·구 동일 업종 매출</small><strong>{selected.localRank === null ? '미확인' : `상위 ${selected.localRank}%`}</strong></div></div><dl className="detail-facts"><div><dt>영업 예상 시간</dt><dd>{selected.hours || '미확인'}</dd></div>{selected.localFavorite && <div><dt>동네 단골</dt><dd>동네 고객 비율이 지역 평균보다 높아요</dd></div>}{selected.groupDining && <div><dt>회식 후보</dt><dd>저녁 단체 결제 이력이 있어요</dd></div>}</dl><BusyDetails restaurant={selected}/><CustomerDetails groups={selected.customerGroups}/><p className="fine-print">최근 1개월 결제 데이터에 따른 추정이에요. 공식 영업시간·실시간 대기 정보가 아니며, 현재 영업 현황은 잇플에서 확인해 주세요.</p></Dialog>}

@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { IS_PREVIEW, SITE_DESCRIPTION, SITE_TITLE, SITE_URL, SOCIAL_TITLE, SOCIAL_IMAGE, serializeJsonLd, websiteSchema } from '@/lib/site';
 import './globals.css';
 import './paper.css';
+import './book-world.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

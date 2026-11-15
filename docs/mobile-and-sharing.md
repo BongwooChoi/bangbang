@@ -80,6 +80,10 @@ GitHub에서는 누구나 PR로 기여할 수 있도록 한다. Vercel 계정에
 
 ## 종이 팝업북 디자인
 
-2026년 11월 15일: 첫 화면은 `src/components/paper-town.tsx`의 직접 작성한 SVG 동네와 CSS 입체·펼침 효과를 사용한다. 실제 지리·매장 외관을 나타내는 그림이 아니며 지도는 기존 Leaflet을 유지한다. `src/app/paper.css`가 종이 레이어, 수첩형 카드, 책갈피와 상세 펼침 효과를 담당한다. WebGL·외부 3D 라이브러리·추가 이미지 API는 사용하지 않는다. 움직임 끄기 버튼과 `prefers-reduced-motion`을 지원한다. 작은 화면에서는 삽화를 줄여 한 집 뽑기에 빨리 접근하게 한다. 상세의 잇플 링크는 하단 고정을 유지한다. PWA shell 버전은 v8이다.
+2026년 11월 15일: 앱 전체를 열린 책으로 구성한다. `src/components/book-village.tsx`의 CSS 3D 가게는 음식 종류를 여는 실제 버튼이다. 책갈피로 동네·검색·나의 수첩을 이동하고, 추천과 상세·공유는 책 위에 펼치는 카드로 연다. 검색 페이지의 한 집 뽑기는 현재 검색·필터 후보에서 선택한다. 즐겨찾기는 기존 브라우저 저장 방식을 유지한다.
 
-공유 썸네일은 `node scripts/generate-assets.mjs`로 재생성한다. `scripts/render-paper-art.tsx`가 앱의 `PaperTownArt`를 재사용하므로 별도 원화를 수정하지 않는다.
+`src/app/book-world.css`가 책·입체 가게·책장 전환을, `paper.css`가 종이 질감과 카드 표현을 담당한다. 가게 그림의 위치는 실제 매장 위치가 아닌 음식 종류별 탐색용이다. 정확한 위치는 검색 페이지의 Leaflet 지도에서 확인한다. 외부 3D 라이브러리를 추가하지 않는다. 모바일에서도 회전 버튼·책갈피·직접 검색을 제공하며 움직임 끄기와 `prefers-reduced-motion`을 지원한다. 서비스 워커 shell 버전은 v9이다.
+
+3D 가게의 펼침 애니메이션에는 opacity를 넣지 않는다. opacity 애니메이션은 자식 입체 면을 평면으로 합칠 수 있다. 장식 레이어는 포인터 이벤트를 받지 않고 가게 버튼만 입력을 받는다. 공유 링크는 첫 화면을 거치지 않고 후보 목록 책장으로 바로 열린다.
+
+공유 썸네일은 기존 종이 동네를 유지한다. `node scripts/generate-assets.mjs`와 `scripts/render-paper-art.tsx`가 `PaperTownArt` 원화를 재사용한다.
