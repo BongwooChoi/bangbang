@@ -5,15 +5,16 @@ import { type Category } from '@/lib/restaurants';
 import { Mascot } from './mascot';
 
 const shops: {category: Category; label: string; emoji: string; x: number; y: number; color: string; roof: string}[] = [
-  {category:'korean',label:'한식',emoji:'🍚',x:80,y:65,color:'#f4d8a4',roof:'#bd7f60'},
-  {category:'noodles',label:'면·분식',emoji:'🍜',x:245,y:40,color:'#f2bfaa',roof:'#d9876c'},
-  {category:'cafe',label:'카페·간식',emoji:'☕',x:435,y:65,color:'#d8e3c2',roof:'#7d9e88'},
+  {category:'korean',label:'한식',emoji:'🍚',x:35,y:65,color:'#f4d8a4',roof:'#bd7f60'},
+  {category:'noodles',label:'면·분식',emoji:'🍜',x:175,y:40,color:'#f2bfaa',roof:'#d9876c'},
+  {category:'western',label:'양식·기타',emoji:'🍝',x:380,y:40,color:'#e2c4c0',roof:'#aa7e88'},
+  {category:'cafe',label:'카페·간식',emoji:'☕',x:510,y:65,color:'#d8e3c2',roof:'#7d9e88'},
   {category:'chinese',label:'중식',emoji:'🥟',x:85,y:285,color:'#f1c5a3',roof:'#c98160'},
   {category:'meat',label:'고기',emoji:'🥩',x:270,y:300,color:'#e7b4a3',roof:'#a36c61'},
   {category:'japanese',label:'일식',emoji:'🍣',x:455,y:280,color:'#d6daba',roof:'#8c9b76'},
 ];
 
-export function BookVillage({ onBrowse, onDraw, count, busy, error, onRetry }: { onBrowse: (category: Category) => void; onDraw: () => void; count: number; busy: boolean; error: string; onRetry: () => void }) {
+export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, busy, error, onRetry }: { onBrowse: (category: Category) => void; onCategory?: (category: Category) => void; onDraw: () => void; count: number; busy: boolean; error: string; onRetry: () => void }) {
   const [angle, setAngle] = useState(-20);
   const [tilt, setTilt] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -52,7 +53,7 @@ export function BookVillage({ onBrowse, onDraw, count, busy, error, onRetry }: {
     setTilt(Math.max(-20, Math.min(18, active.tilt + dy * .2)));
   }
   return <div className={`village-chapter ${paused ? 'village-paused' : ''}`}>
-    <div className="village-heading"><span className="book-kicker">CHAPTER 01 · 우리 동네 한 끼</span><h1>오늘은 어느 집을<br className="village-break"/> 펼쳐볼까요?</h1><p>뱅뱅사거리부터 강남역·양재역까지.<br/>책 속 가게를 누르면 맛집이 펼쳐져요.</p></div>
+    <div className="village-heading"><span className="book-kicker">CHAPTER 01 · 우리 동네 한 끼</span><h1>오늘은 어느 집을<br className="village-break"/> 펼쳐볼까요?</h1><p>뱅뱅사거리부터 강남역·양재역까지.<br/>가게를 누르면 실제 매장 지도가 펼쳐져요.</p></div>
     <div className={`world-camera ${dragging ? 'is-dragging' : ''}`} style={{ '--village-angle': `${angle}deg`, '--village-tilt': `${tilt}deg` } as CSSProperties}
       tabIndex={0} role="group" aria-label="입체 동네. 상하좌우로 드래그하거나 방향키로 회전해요. Home 키로 시점을 초기화해요."
       onKeyDown={event => {
@@ -73,7 +74,7 @@ export function BookVillage({ onBrowse, onDraw, count, busy, error, onRetry }: {
           <div className="village-road road-horizontal"/><div className="village-road road-vertical"/>
           <div className="village-crosswalk"/>
           <div className="village-grass grass-one"/><div className="village-grass grass-two"/>
-          {shops.map((shop,i)=><button type="button" className="world-shop" key={shop.category} onClick={()=>onBrowse(shop.category)} aria-label={`${shop.label} 맛집 펼치기`} style={{left:shop.x,top:shop.y,'--shop-color':shop.color,'--roof-color':shop.roof,'--shop-delay':`${i*65}ms`} as CSSProperties}>
+          {shops.map((shop,i)=><button type="button" className="world-shop" key={shop.category} onClick={()=>onCategory(shop.category)} aria-label={`${shop.label} 입체 지도 펼치기`} style={{left:shop.x,top:shop.y,'--shop-color':shop.color,'--roof-color':shop.roof,'--shop-delay':`${i*65}ms`} as CSSProperties}>
             <span className="shop-foot"/>
             <span className="shop-building" aria-hidden="true">
               <span className="shop-wall shop-back"/><span className="shop-wall shop-left"/><span className="shop-wall shop-right"/>

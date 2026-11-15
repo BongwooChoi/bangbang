@@ -18,11 +18,13 @@ import { RestaurantNextStep } from './restaurant-next-step';
 import { BookVillage } from './book-village';
 
 const MapView = dynamic(() => import('./map-view'), { ssr: false, loading: () => <div className="map-loading"><Mascot/><span>동네 지도를 펼치는 중이에요…</span></div> });
+const CategoryMap = dynamic(() => import('./category-map'), { ssr: false, loading: () => <div className="map-loading"><Mascot/><span>입체 지도를 펼치는 중이에요…</span></div> });
 const zones: { id: Zone; label: string }[] = [{ id: 'all', label: '동네 전체' }, { id: 'bangbang', label: '뱅뱅사거리' }, { id: 'gangnam', label: '강남역 쪽' }, { id: 'yangjae', label: '양재역 쪽' }];
 type InstallEvent = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }> };
 
 export default function Explorer({ initialData, sharedIds = [], children }: { initialData?: RestaurantResponse; sharedIds?: string[]; children?: ReactNode }) {
   const [chapter, setChapter] = useState<'town' | 'search' | 'saved'>(sharedIds.length ? 'search' : 'town');
+  const [mapCategory, setMapCategory] = useState<Category | null>(null);
   const bookScroll = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<RestaurantResponse | undefined>(initialData);
   const [loading, setLoading] = useState(!initialData);
@@ -107,11 +109,13 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
   function clearSearch() { searchRequest.current?.abort(); searchRequest.current = null; setSearchBusy(false); setSearchInput(''); setSearchData(undefined); setSearchIntent(undefined); setSearchError(''); }
   function reset() { clearSearch(); setCategory('all'); setZone('all'); setLocalOnly(false); setSavedOnly(false); setSharedOnly(false); setGroupOnly(false); setCustomerAge('all'); setCustomerGender('all'); setSort('recommended'); }
   function turnPage(next: 'town' | 'search' | 'saved') {
+    setMapCategory(null);
     if (next === 'town' || next === 'saved') reset();
     setSavedOnly(next === 'saved'); setChapter(next); setMobileTab('list');
     requestAnimationFrame(() => { bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' }); document.getElementById(next === 'town' ? 'town-page' : 'search-page')?.focus({ preventScroll: true }); });
   }
-  function browseCategory(next: Category) { reset(); setCategory(next); setChapter('search'); setMobileTab('list'); requestAnimationFrame(() => { bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' }); document.getElementById('search-page')?.focus({ preventScroll: true }); }); }
+  function browseCategory(next: Category) { setMapCategory(null); reset(); setCategory(next); setChapter('search'); setMobileTab('list'); requestAnimationFrame(() => { bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' }); document.getElementById('search-page')?.focus({ preventScroll: true }); }); }
+  function openCategoryMap(next: Category) { reset(); setCategory(next); setMapCategory(next); setChapter('town'); requestAnimationFrame(() => { bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' }); document.getElementById('town-page')?.focus({ preventScroll: true }); }); }
   function openSaved() { turnPage(chapter === 'saved' ? 'town' : 'saved'); }
   async function search() {
     if (!searchInput.trim()) { reset(); return; }
@@ -177,7 +181,7 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
           <div className="book-spine" aria-hidden="true"/>
           <div className="book-page-scroll" ref={bookScroll}>
             <section id="town-page" className="book-leaf town-leaf" hidden={chapter !== 'town'} tabIndex={-1} aria-label="동네 펼치기">
-              <BookVillage onBrowse={browseCategory} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>
+              {mapCategory !== null ? <CategoryMap category={mapCategory} restaurants={filtered} selected={selected} busy={loading} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onSelect={setSelected} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
             </section>
             <div id="search-page" className={'book-leaf search-leaf ' + (chapter === 'saved' ? 'saved-leaf' : '')} hidden={chapter === 'town'} tabIndex={-1}>
               <div className="chapter-heading"><div><span className="book-kicker">{chapter === 'saved' ? 'CHAPTER 03 · 나의 수첩' : 'CHAPTER 02 · 맛집 찾기'}</span><h2>{chapter === 'saved' ? '다음에 또, 이 집.' : category === 'all' ? '한 끼를 찾아요' : `${categoryInfo(category).label} 맛집 찾기`}</h2></div><div className="chapter-actions">{chapter === 'search' && <button className="chapter-draw" onClick={draw} disabled={loading || searchBusy || !filtered.length} aria-label="현재 조건에서 한 집 뽑기" title="현재 검색·필터에 맞는 후보에서 무작위로 골라요"><Shuffle size={16}/><span>한 집 뽑기</span></button>}<button className="chapter-back" aria-label="동네 책장으로 돌아가기" onClick={() => turnPage('town')}><ArrowRight size={16}/>동네로</button></div></div>

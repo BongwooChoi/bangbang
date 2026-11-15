@@ -32,3 +32,6 @@ body:has(.book-experience) .dialog{border:8px solid #6c8268;border-radius:5px 18
 @media(max-width:767px){.world-camera{width:calc(100% + 24px)}}
 
 .world-camera:focus-visible{outline:2px dashed #709878;outline-offset:-4px;border-radius:12px}
+
+/* All shop faces share the same 88 × 70 footprint and 90px wall height. */
+.shop-wall{left:0;top:auto;transform-origin:50% 100%}.shop-front{bottom:0}.shop-back{bottom:70px}.shop-left,.shop-right{bottom:0;transform-origin:0 100%}.shop-right{left:88px}.shop-roof{left:-5px;right:auto;top:-5px;bottom:auto;width:98px;height:80px;transform-origin:center}.shop-roof-edge{left:-5px;right:auto;width:98px}.road-vertical{left:315px}.road-vertical:after{left:25px}.village-crosswalk{left:310px}.tree-one{left:12px;top:165px}

@@ -4,6 +4,7 @@ import { IS_PREVIEW, SITE_DESCRIPTION, SITE_TITLE, SITE_URL, SOCIAL_TITLE, SOCIA
 import './globals.css';
 import './paper.css';
 import './book-world.css';
+import './category-map.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
