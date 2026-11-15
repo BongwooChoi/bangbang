@@ -6,5 +6,5 @@ export async function captureSocialCard(page) {
   await page.cdp('Emulation.setDeviceMetricsOverride', { width: 1200, height: 630, deviceScaleFactor: 1, mobile: false });
   await page.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   await page.evaluate(() => document.fonts.ready.then(() => true));
-  return page.screenshot({ path: fileURLToPath(new URL('../public/og-popup-book.png', import.meta.url)) });
+  return page.screenshot({ path: fileURLToPath(new URL('../public/og-paper-village.png', import.meta.url)) });
 }

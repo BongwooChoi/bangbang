@@ -8,7 +8,7 @@ await mkdir(`${publicDir}/icons`, { recursive: true });
 for (const [name, size] of [['icon-192', 192], ['icon-512', 512], ['apple-touch-icon', 180], ['maskable-512', 512]]) {
   await sharp(icon).resize(size, size).png().toFile(`${publicDir}/icons/${name}.png`);
 }
-// CSS 3D requires browser rendering. Keep the checked-in PNG independent of deployment fonts.
+// Render the app's artwork in-browser. Keep the checked-in PNG independent of deployment fonts.
 const preview = execFileSync(process.execPath, ['--import', 'tsx', fileURLToPath(new URL('./render-og-preview.tsx', import.meta.url))]);
 const previewPath = new URL('../tmp/og-popup-book.html', import.meta.url);
 await mkdir(new URL('../tmp/', import.meta.url), { recursive: true });
