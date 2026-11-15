@@ -15,6 +15,7 @@ import { MAX_SEARCH_LENGTH, searchIntentLabels, type SearchIntent } from '@/lib/
 import { EatplLink } from './eatpl-link';
 import { BrowserNotice } from './browser-notice';
 import { RestaurantNextStep } from './restaurant-next-step';
+import { PaperTown } from './paper-town';
 
 const MapView = dynamic(() => import('./map-view'), { ssr: false, loading: () => <div className="map-loading"><Mascot/><span>동네 지도를 펼치는 중이에요…</span></div> });
 const zones: { id: Zone; label: string }[] = [{ id: 'all', label: '동네 전체' }, { id: 'bangbang', label: '뱅뱅사거리' }, { id: 'gangnam', label: '강남역 쪽' }, { id: 'yangjae', label: '양재역 쪽' }];
@@ -153,9 +154,9 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
       </nav>
     </header>
     <main className="page-shell">
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-copy"><span className="eyebrow"><span/> 강남역부터 양재역까지, 맛있는 산책</span><h1 id="hero-title">오늘 점심,<br className="mobile-break"/> <span>뱅뱅 돌지 말고.</span></h1><p>뱅뱅사거리 주변에서 발견하는 맛있는 한 끼.<br className="mobile-break"/> 마음에 드는 곳을 담고, 같이 먹을 사람에게 보내요.</p></div>
-        <div className="hero-art" aria-hidden="true"><span className="doodle-star">✦</span><span className="doodle-text">밥 먹으러 가요!</span><div className="mascot-sticker"><Mascot size={115}/></div><span className="food-sticker">🍙</span><span className="small-flower">✿</span></div>
+      <section className="hero paper-hero" aria-labelledby="hero-title">
+        <div className="hero-copy"><span className="eyebrow"><span/> 강남역부터 양재역까지, 한 끼 산책</span><h1 id="hero-title">오늘 점심,<br/> <span>한 장 펼쳐볼까요?</span></h1><p>뱅뱅사거리의 맛있는 곳들을 모은 작은 수첩.<br/>카드 데이터로 찾고, 마음에 드는 한 집을 담아요.</p><p className="hero-footnote"><span/> 검색은 구체적으로, 점메추는 가볍게.</p></div>
+        <PaperTown/>
       </section>
       <section className="search-section" aria-label="맛집 검색과 필터">
         <div className="random-discovery">

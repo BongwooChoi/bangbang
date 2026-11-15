@@ -46,7 +46,7 @@ HTTPS, Web App Manifest, 앱 이름, 192px·512px 아이콘, 시작 URL, standal
 | 링크 복사 | 기본 공유를 지원하지 않아도 사용 가능. 복사 성공 안내, 실패 시 선택 가능한 URL 제공 |
 | 링크 미리보기 | 우리 페이지의 제목·설명·대표 이미지를 Open Graph 메타데이터로 제공. 실제 내용과 일치하고 사용 권한이 있는 이미지 사용 |
 
-홈 링크는 ‘뱅뱅밥 · 카드 데이터로 찾는 동네 맛집’과 연령·성별·단골 조건을 활용하는 자연어 AI 검색 설명을 사용한다. 음식점 공유 페이지는 식당명·함께 식사하자는 설명을 유지한다. 공통 썸네일은 `/og-card-data.png`(1200×630)이며 `node scripts/generate-assets.mjs`로 재생성한다. 이전 `/og-image.png`와 `/og-ai-search.png`는 기존 링크 호환을 위해 남긴다. 운영 배포 후 [카카오 URL 메타 정보 관리](https://developers.kakao.com/tool/debugger/sharing)에서 홈 URL의 캐시를 초기화하고 새 미리보기를 확인한다.
+홈 링크는 ‘뱅뱅밥 · 카드 데이터로 찾는 동네 맛집’과 연령·성별·단골 조건을 활용하는 자연어 AI 검색 설명을 사용한다. 음식점 공유 페이지는 식당명·함께 식사하자는 설명을 유지한다. 공통 썸네일은 `/og-paper-town.png`(1200×630)이며 `node scripts/generate-assets.mjs`로 재생성한다. 이전 `/og-image.png`, `/og-ai-search.png`, `/og-card-data.png`는 기존 링크 호환을 위해 남긴다. 운영 배포 후 [카카오 URL 메타 정보 관리](https://developers.kakao.com/tool/debugger/sharing)에서 홈 URL의 캐시를 초기화하고 새 미리보기를 확인한다.
 
 카카오톡 공유에는 [Kakao.Share](https://developers.kakao.com/docs/latest/ko/kakaotalk-share/js-link)를 사용한다. 자동으로 지인에게 메시지를 발송하는 기능은 만들지 않는다. 사용자가 수신자를 선택하고 전송한다. SDK를 열었다는 사실만으로 전달 성공으로 기록하지 않는다.
 
@@ -76,3 +76,10 @@ GitHub에서는 누구나 PR로 기여할 수 있도록 한다. Vercel 계정에
 - [ ] 등록 도메인에서 잇플로 실제 이동 후 대시보드 유효 사용자 반영 확인
 
 실기기에서 실행하지 않은 항목은 통과로 기록하지 않는다. 구현 후 로컬 브라우저에서 확인한 내용과 실제 기기에서 남은 항목은 [검증 기록](verification.md)에 구분해 기록한다.
+
+
+## 종이 팝업북 디자인
+
+2026년 11월 15일: 첫 화면은 `src/components/paper-town.tsx`의 직접 작성한 SVG 동네와 CSS 입체·펼침 효과를 사용한다. 실제 지리·매장 외관을 나타내는 그림이 아니며 지도는 기존 Leaflet을 유지한다. `src/app/paper.css`가 종이 레이어, 수첩형 카드, 책갈피와 상세 펼침 효과를 담당한다. WebGL·외부 3D 라이브러리·추가 이미지 API는 사용하지 않는다. 움직임 끄기 버튼과 `prefers-reduced-motion`을 지원한다. 작은 화면에서는 삽화를 줄여 한 집 뽑기에 빨리 접근하게 한다. 상세의 잇플 링크는 하단 고정을 유지한다. PWA shell 버전은 v8이다.
+
+공유 썸네일은 `node scripts/generate-assets.mjs`로 재생성한다. `scripts/render-paper-art.tsx`가 앱의 `PaperTownArt`를 재사용하므로 별도 원화를 수정하지 않는다.
