@@ -139,6 +139,6 @@ export default function CategoryMap({ category, restaurants, selected, busy, err
     <p className="geo-hint" role="status">{busy ? '매장 위치를 펼치고 있어요…' : error ? <>{error} <button onClick={onRetry}>다시 불러오기</button></> : restaurants.length === 0 ? '이 종류의 매장은 현재 조회되지 않아요. 다른 종류를 골라보세요.' : <>지도에 {visibleCount}곳 · 매장을 누르면 잇플에서 AI 요약·메뉴·지도를 바로 봐요.</>}</p>
     {tileError && <p className="geo-error">배경 지도를 불러오지 못했어요. 매장 위치 핀은 계속 표시됩니다.</p>}
     {cluster.length > 0 && <aside className="geo-cluster-list" aria-label="가까운 매장"><div><strong>가까운 매장 {cluster.length}곳</strong><button onClick={() => setCluster([])} aria-label="가까운 매장 접기"><X size={16}/></button></div><p>매장을 고르면 잇플에서 AI 요약·메뉴·지도를 바로 봐요.</p><div className="geo-cluster-options">{cluster.map(r => <EatplLink key={r.id} href={r.eatplUrl} placement="list" aria-label={`${r.name} 잇플에서 AI 요약·메뉴·지도 보기`}>{categoryInfo(r.category).emoji} {r.name}<ArrowRight size={13}/></EatplLink>)}</div></aside>}
-    <div className="geo-footer"><button className="geo-draw" onClick={onDraw} disabled={busy || !restaurants.length}><Shuffle size={16}/>{info.label}에서 한 집 뽑기</button></div>
+    <div className="geo-footer"><button className="geo-draw" onClick={onDraw} disabled={busy || !restaurants.length}><Shuffle size={16}/>{info.label}에서 한 집 뽑고 잇플 보기</button></div>
   </section>;
 }

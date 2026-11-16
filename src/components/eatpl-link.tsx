@@ -16,6 +16,18 @@ export function recordEatplActivation(event: Pick<MouseEvent, 'defaultPrevented'
   } catch { /* Keep the native anchor usable when diagnostics are blocked. */ }
 }
 
+// Called synchronously from a user's random-pick button. Preserve the same
+// native navigation/referrer behavior as a visible merchant link.
+export function openEatpl(href: string, placement: OutboundClick['placement']) {
+  const link = document.createElement('a');
+  link.href = href; link.target = '_self'; link.rel = 'noopener';
+  link.referrerPolicy = 'strict-origin-when-cross-origin';
+  link.dataset.eatplLink = placement; link.hidden = true;
+  link.addEventListener('click', event => recordEatplActivation(event, placement));
+  document.body.appendChild(link);
+  try { link.click(); } finally { link.remove(); }
+}
+
 export function EatplLink({ href, placement, children, ...props }: {
   href: string; placement: OutboundClick['placement']; children: ReactNode;
   className?: string; style?: CSSProperties; 'aria-label'?: string; 'aria-describedby'?: string;
