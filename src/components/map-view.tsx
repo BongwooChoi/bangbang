@@ -5,8 +5,9 @@ import 'leaflet/dist/leaflet.css';
 import { LocateFixed, Plus, Minus, MapPin } from 'lucide-react';
 import { AREA_POLYGON, CENTER, EXITS, isInArea, type Point, type Zone } from '@/lib/geo';
 import { categoryInfo, type Restaurant } from '@/lib/restaurants';
+import { recordEatplActivation } from './eatpl-link';
 
-type Props = { restaurants: Restaurant[]; selected: Restaurant | null; zone: Zone; onSelect: (r: Restaurant) => void; onNotice: (message: string) => void };
+type Props = { restaurants: Restaurant[]; selected: Restaurant | null; zone: Zone; onNotice: (message: string) => void };
 function moveTo(instance: L.Map | null, p: Point, zoom: number) {
   if (!instance) return;
   instance.stop();
@@ -19,12 +20,12 @@ function moveTo(instance: L.Map | null, p: Point, zoom: number) {
     instance.flyTo([p.lat, p.lng], zoom, { duration: 0.4 });
   }
 }
-export default function MapView({ restaurants, selected, zone, onSelect, onNotice }: Props) {
+export default function MapView({ restaurants, selected, zone, onNotice }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const markers = useRef<L.LayerGroup | null>(null);
   const locationMarker = useRef<L.CircleMarker | null>(null);
-  const select = useRef(onSelect); select.current = onSelect;
+  const dragged = useRef(false);
   const [ready, setReady] = useState(false);
   const [tileError, setTileError] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -32,6 +33,7 @@ export default function MapView({ restaurants, selected, zone, onSelect, onNotic
     if (!container.current) return;
     const instance = L.map(container.current, { zoomControl: false, attributionControl: true, minZoom: 14, maxZoom: 19, scrollWheelZoom: true }).setView([CENTER.lat, CENTER.lng], 16);
     map.current = instance;
+    instance.on('dragstart', () => { dragged.current = true; });
     L.tileLayer(process.env.NEXT_PUBLIC_MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: process.env.NEXT_PUBLIC_MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19, keepBuffer: 1,
@@ -55,14 +57,22 @@ export default function MapView({ restaurants, selected, zone, onSelect, onNotic
     if (!markers.current || !ready) return;
     markers.current.clearLayers();
     restaurants.forEach(r => {
-      const el = document.createElement('div');
+      const el = document.createElement('a');
+      el.href = r.eatplUrl; el.target = '_self'; el.rel = 'noopener'; el.referrerPolicy = 'strict-origin-when-cross-origin';
+      el.dataset.eatplLink = 'list';
+      el.setAttribute('aria-label', `${r.name} 잇플에서 AI 요약·메뉴·지도 보기`);
+      el.addEventListener('pointerdown', () => { dragged.current = false; });
+      el.addEventListener('click', event => {
+        if (event.detail !== 0 && dragged.current) { event.preventDefault(); return; }
+        recordEatplActivation(event, 'list');
+      });
+      el.addEventListener('auxclick', event => { if (event.button === 1) recordEatplActivation(event, 'list'); });
       el.className = `food-marker ${selected?.id === r.id ? 'is-selected' : ''} marker-${r.category}`;
       el.textContent = categoryInfo(r.category).emoji;
-      const marker = L.marker([r.lat, r.lng], { icon: L.divIcon({ html: el, className: 'food-marker-wrap', iconSize: [36, 42], iconAnchor: [18, 39] }), title: r.name, alt: r.name, keyboard: true, zIndexOffset: selected?.id === r.id ? 1000 : 0 });
+      const marker = L.marker([r.lat, r.lng], { icon: L.divIcon({ html: el, className: 'food-marker-wrap', iconSize: [44, 44], iconAnchor: [22, 41] }), title: r.name, alt: r.name, keyboard: false, zIndexOffset: selected?.id === r.id ? 1000 : 0 });
       const tooltip = document.createElement('span'); tooltip.textContent = r.name;
       marker.bindTooltip(tooltip, { direction: 'top', offset: [0, -33], className: 'food-tooltip' });
-      marker.on('click', () => select.current(r)); marker.addTo(markers.current!);
-      marker.getElement()?.setAttribute('aria-label', `${r.name} 상세 보기`);
+      marker.addTo(markers.current!);
     });
   }, [restaurants, selected?.id, ready]);
   useEffect(() => { if (selected) moveTo(map.current, selected, 17); }, [selected]);
@@ -92,7 +102,7 @@ export default function MapView({ restaurants, selected, zone, onSelect, onNotic
       <button onClick={() => moveTo(map.current, CENTER, 16)} aria-label="뱅뱅사거리로 이동"><MapPin size={19}/></button>
       <button onClick={locate} disabled={locating} aria-label="내 위치로 이동"><LocateFixed className={locating ? 'spin' : ''} size={19}/></button>
     </div>
-    <div className="map-note">점선 안에서 오늘의 한 끼를 찾아요 🌱</div>
+    <div className="map-note">매장을 누르면 잇플에서 AI 요약·메뉴·지도 보기 ↗</div>
     {tileError && <div className="map-error" role="status">지도를 불러오지 못했어요. 음식점 목록은 계속 이용할 수 있어요.</div>}
   </div>;
 }
