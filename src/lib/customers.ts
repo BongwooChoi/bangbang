@@ -32,8 +32,8 @@ export function parseCustomerGroups(value: unknown): CustomerGroup[] {
   return result;
 }
 
-export function matchesCustomerGroup(groups: CustomerGroup[] | undefined, age: CustomerAge = 'all', gender: CustomerGender = 'all'): boolean {
-  if (age === 'all' && gender === 'all') return true;
+export function matchesCustomerGroup(groups: CustomerGroup[] | undefined, age: CustomerAge = 'all', gender: CustomerGender = 'all', ages: Exclude<CustomerAge, 'all'>[] = []): boolean {
+  if (!ages.length && age === 'all' && gender === 'all') return true;
   // Both conditions must match the SAME top-three group, never different groups.
-  return (groups ?? []).some(group => (age === 'all' || group.age === age) && (gender === 'all' || group.gender === gender));
+  return (groups ?? []).some(group => (ages.length ? ages.includes(group.age) : age === 'all' || group.age === age) && (gender === 'all' || group.gender === gender));
 }

@@ -13,6 +13,9 @@ export type SearchIntent = {
   category: Category; excludedCategories: Category[]; zone: Zone;
   sort: typeof SORTS[number]; localOnly: boolean; groupOnly: boolean;
   customerAge: CustomerAge; customerGender: CustomerGender;
+  customerAges: Exclude<CustomerAge, 'all'>[];
+  includedCategories: Exclude<Category, 'all'>[];
+  mealOnly: boolean;
   unsupported: typeof UNSUPPORTED[number][];
 };
 const enumSchema = (values: readonly string[]) => ({ type: 'string', enum: values });
@@ -24,6 +27,9 @@ const properties = {
   zone: enumSchema(ZONES), sort: enumSchema(SORTS),
   localOnly: { type: 'boolean' }, groupOnly: { type: 'boolean' },
   customerAge: enumSchema(CUSTOMER_AGES.map(c => c.id)), customerGender: enumSchema(CUSTOMER_GENDERS.map(c => c.id)),
+  customerAges: { type: 'array', maxItems: 6, items: enumSchema(CUSTOMER_AGES.filter(c => c.id !== 'all').map(c => c.id)) },
+  includedCategories: { type: 'array', maxItems: 7, items: enumSchema(CATEGORIES.filter(c => c.id !== 'all').map(c => c.id)) },
+  mealOnly: { type: 'boolean' },
   unsupported: { type: 'array', maxItems: 9, items: enumSchema(UNSUPPORTED) },
 };
 export const SEARCH_SCHEMA = { type: 'object', properties, required: Object.keys(properties), additionalProperties: false };
@@ -37,19 +43,28 @@ export function validateSearchIntent(value: unknown): SearchIntent {
     || !includes(CATEGORIES.map(c => c.id), v.category) || !includes(ZONES, v.zone) || !includes(SORTS, v.sort)
     || typeof v.localOnly !== 'boolean' || typeof v.groupOnly !== 'boolean'
     || !includes(CUSTOMER_AGES.map(c => c.id), v.customerAge) || !includes(CUSTOMER_GENDERS.map(c => c.id), v.customerGender)
+    || typeof v.mealOnly !== 'boolean'
+    || !Array.isArray(v.customerAges) || v.customerAges.length > 6 || !v.customerAges.every(a => a !== 'all' && includes(CUSTOMER_AGES.map(c => c.id), a))
+    || !Array.isArray(v.includedCategories) || v.includedCategories.length > 7 || !v.includedCategories.every(c => c !== 'all' && includes(CATEGORIES.map(c => c.id), c))
     || !Array.isArray(v.excludedCategories) || v.excludedCategories.length > 7 || !v.excludedCategories.every(c => c !== 'all' && includes(CATEGORIES.map(c => c.id), c))
     || !Array.isArray(v.unsupported) || v.unsupported.length > 9 || !v.unsupported.every(c => includes(UNSUPPORTED, c))) throw new Error('invalid_search_intent');
-  return { ...v, merNm: v.merNm.trim() } as SearchIntent;
+  const result = { ...v, merNm: v.merNm.trim(), customerAges: [...new Set(v.customerAges)], includedCategories: [...new Set(v.includedCategories)] } as SearchIntent;
+  if (result.customerAges.length) result.customerAge = 'all';
+  if (result.includedCategories.length || result.merTpbuzNm) result.category = 'all';
+  if (result.includedCategories.length) result.merTpbuzNm = null;
+  return result;
 }
 export function searchIntentLabels(intent: SearchIntent): string[] {
   const labels: string[] = [];
   if (intent.merNm) labels.push(`가게명: ${intent.merNm}`);
+  if (intent.includedCategories.length) labels.push(intent.includedCategories.map(c => CATEGORIES.find(item => item.id === c)!.label).join(' 또는 '));
+  if (intent.mealOnly) labels.push('식사할 곳');
   if (intent.merTpbuzNm) labels.push(intent.merTpbuzNm);
   else if (intent.category !== 'all') labels.push(CATEGORIES.find(c => c.id === intent.category)!.label);
   if (intent.zone !== 'all') labels.push({ bangbang: '뱅뱅사거리', gangnam: '강남역 쪽', yangjae: '양재역 쪽' }[intent.zone]);
   if (intent.localOnly) labels.push('동네 단골');
   if (intent.groupOnly) labels.push('회식 후보');
-  if (intent.customerAge !== 'all' || intent.customerGender !== 'all') labels.push([intent.customerAge !== 'all' ? CUSTOMER_AGES.find(c => c.id === intent.customerAge)!.label : '', intent.customerGender !== 'all' ? CUSTOMER_GENDERS.find(c => c.id === intent.customerGender)!.label : '', '주요 방문 고객층'].filter(Boolean).join(' '));
+  if (intent.customerAges.length || intent.customerAge !== 'all' || intent.customerGender !== 'all') labels.push([intent.customerAges.length ? intent.customerAges.map(a => CUSTOMER_AGES.find(c => c.id === a)!.label).join(' 또는 ') : intent.customerAge !== 'all' ? CUSTOMER_AGES.find(c => c.id === intent.customerAge)!.label : '', intent.customerGender !== 'all' ? CUSTOMER_GENDERS.find(c => c.id === intent.customerGender)!.label : '', '주요 방문 고객층'].filter(Boolean).join(' '));
   intent.excludedCategories.forEach(c => labels.push(`${CATEGORIES.find(item => item.id === c)!.label} 제외`));
   labels.push({ recommended: '뱅뱅 추천순', distance: '사거리 가까운 순', rank: '지역 매출 상위순' }[intent.sort]);
   return labels;

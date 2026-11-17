@@ -40,11 +40,15 @@ export async function POST(request: Request) {
   if (typeof input !== 'string' || !input.trim() || input.trim().length > MAX_SEARCH_LENGTH) return Response.json({ error: '원하는 조건을 1~300자로 입력해 주세요.' }, { status: 400, headers });
   if (!process.env.OPENAI_API_KEY) return Response.json({ error: 'AI 검색을 준비 중이에요. 아래 필터로 맛집을 찾아주세요.' }, { status: 503, headers });
   if (!allow(request)) return Response.json({ error: '검색 요청이 많아요. 1분 뒤 다시 시도해 주세요.' }, { status: 429, headers: { ...headers, 'Retry-After': '60' } });
+  let intent;
+  try { intent = await extractSearchIntent(input.trim(), request.signal); }
+  catch {
+    return Response.json({ error: 'AI 검색 연결이 잠시 원활하지 않아요. 같은 문장으로 다시 시도하거나 아래 필터를 이용해 주세요.' }, { status: 503, headers });
+  }
   try {
-    const intent = await extractSearchIntent(input.trim(), request.signal);
     const data = await loadRestaurants(intent);
     return Response.json({ intent, data }, { headers });
   } catch {
-    return Response.json({ error: '조건을 해석하거나 맛집을 조회하지 못했어요. 다시 검색하거나 아래 필터를 이용해 주세요.' }, { status: 503, headers });
+    return Response.json({ error: '조건은 읽었지만 음식점 정보를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.' }, { status: 503, headers });
   }
 }

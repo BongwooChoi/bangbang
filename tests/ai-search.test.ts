@@ -4,7 +4,7 @@ import { extractSearchIntent } from '../src/lib/ai-search';
 import { SEARCH_MODEL, validateSearchIntent, searchIntentLabels } from '../src/lib/search-intent';
 import { POST } from '../src/app/api/search/route';
 
-const intent = { merNm: '', merTpbuzNm: '중국음식', category: 'all', excludedCategories: [], zone: 'gangnam', sort: 'recommended', localOnly: true, groupOnly: false, customerAge: 'all', customerGender: 'all', unsupported: [] };
+const intent = { merNm: '', merTpbuzNm: '중국음식', category: 'all', excludedCategories: [], zone: 'gangnam', sort: 'recommended', localOnly: true, groupOnly: false, customerAge: 'all', customerGender: 'all', customerAges: [], includedCategories: [], mealOnly: false, unsupported: [] };
 const originalKey = process.env.OPENAI_API_KEY;
 beforeEach(() => { process.env.OPENAI_API_KEY = 'synthetic-test-key'; });
 afterEach(() => { if (originalKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = originalKey; });
@@ -62,6 +62,17 @@ test('route rejects invalid, oversized and cross-origin requests before spending
   assert.equal((await POST(request('카페', { 'content-type': 'text/plain' }))).status, 415);
   assert.equal((await POST(request('x'.repeat(5000)))).status, 413);
   assert.equal(mocked.mock.callCount(), 0);
+});
+
+test('unverified wishes keep usable OR ages and meal conditions in a successful search', async t => {
+  t.mock.method(globalThis, 'fetch', async (url: string | URL | Request) => String(url).includes('api.openai.com')
+    ? completed({...intent,merTpbuzNm:null,zone:'all',localOnly:false,customerAges:['30','40'],mealOnly:true,unsupported:['가격·예산','분위기·혼밥']})
+    : Response.json({items:[]}));
+  const response=await POST(request('30대 40대 점심 추천, 저렴한 혼밥',{'x-vercel-forwarded-for':'192.0.2.50'}));
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.deepEqual(body.intent.customerAges,['30','40']);assert.equal(body.intent.mealOnly,true);
+  assert.equal(body.intent.unsupported.length,2);
 });
 test('AI errors are sanitized and repeated requests hit a bounded rate limit', async t => {
   const mocked = t.mock.method(globalThis, 'fetch', async () => new Response('sensitive upstream error', { status: 500 }));

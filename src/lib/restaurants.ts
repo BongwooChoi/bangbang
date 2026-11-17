@@ -83,13 +83,13 @@ export function normalizePayload(payload: unknown): Restaurant[] {
   }
   return [...unique.values()];
 }
-export function filterRestaurants(rows: Restaurant[], options: { category: Category; zone: Zone; query: string; sort: string; localOnly: boolean; groupOnly?: boolean; customerAge?: CustomerAge; customerGender?: CustomerGender }): Restaurant[] {
+export function filterRestaurants(rows: Restaurant[], options: { category: Category; zone: Zone; query: string; sort: string; localOnly: boolean; groupOnly?: boolean; customerAge?: CustomerAge; customerAges?: Exclude<CustomerAge, 'all'>[]; customerGender?: CustomerGender }): Restaurant[] {
   const q = options.query.trim().toLocaleLowerCase('ko');
   return rows.filter(r => (options.category === 'all' || r.category === options.category)
     && (options.zone === 'all' || r.zone === options.zone)
     && (!options.localOnly || r.localFavorite)
     && (!options.groupOnly || r.groupDining)
-    && matchesCustomerGroup(r.customerGroups, options.customerAge, options.customerGender)
+    && matchesCustomerGroup(r.customerGroups, options.customerAge, options.customerGender, options.customerAges)
     && (!q || `${r.name} ${r.address} ${r.genre}`.toLocaleLowerCase('ko').includes(q)))
     .sort((a, b) => options.sort === 'recommended' ? compareRecommended(a, b) : options.sort === 'rank'
       ? (a.localRank ?? 101) - (b.localRank ?? 101) || a.distance - b.distance
