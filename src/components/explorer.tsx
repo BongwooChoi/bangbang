@@ -110,14 +110,21 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
   }
   function clearSearch() { setCustomerAges([]); searchRequest.current?.abort(); searchRequest.current = null; setSearchBusy(false); setSearchInput(''); setSearchData(undefined); setSearchIntent(undefined); setSearchError(''); }
   function reset() { clearSearch(); setCategory('all'); setZone('all'); setLocalOnly(false); setSavedOnly(false); setSharedOnly(false); setGroupOnly(false); setCustomerAge('all'); setCustomerGender('all'); setSort('recommended'); }
+  function focusBookPage(id: 'town-page' | 'search-page') {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' });
+      document.getElementById(id)?.focus({ preventScroll: true });
+    });
+  }
   function turnPage(next: 'town' | 'search' | 'saved') {
     setMapCategory(null);
     if (next === 'town' || next === 'saved') reset();
     setSavedOnly(next === 'saved'); setChapter(next); setMobileTab('list');
-    requestAnimationFrame(() => { bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' }); document.getElementById(next === 'town' ? 'town-page' : 'search-page')?.focus({ preventScroll: true }); });
+    focusBookPage(next === 'town' ? 'town-page' : 'search-page');
   }
-  function browseCategory(next: Category) { setMapCategory(null); reset(); setCategory(next); setChapter('search'); setMobileTab('list'); requestAnimationFrame(() => { bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' }); document.getElementById('search-page')?.focus({ preventScroll: true }); }); }
-  function openCategoryMap(next: Category) { reset(); setCategory(next); setMapCategory(next); setChapter('town'); requestAnimationFrame(() => { bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' }); document.getElementById('town-page')?.focus({ preventScroll: true }); }); }
+  function browseCategory(next: Category) { setMapCategory(null); reset(); setCategory(next); setChapter('search'); setMobileTab('list'); focusBookPage('search-page'); }
+  function openCategoryMap(next: Category) { reset(); setCategory(next); setMapCategory(next); setChapter('town'); focusBookPage('town-page'); }
   function openSaved() { turnPage(chapter === 'saved' ? 'town' : 'saved'); }
   async function search() {
     if (!searchInput.trim()) { reset(); return; }
@@ -182,12 +189,12 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
         </nav>
         <div className="open-book">
           <div className="book-spine" aria-hidden="true"/>
-          <div className="book-page-scroll" ref={bookScroll}>
+          <div className={chapter === 'town' && mapCategory === null ? 'book-page-scroll book-page-scroll-home' : 'book-page-scroll'} ref={bookScroll}>
             <section id="town-page" className="book-leaf town-leaf" hidden={chapter !== 'town'} tabIndex={-1} aria-label="동네 펼치기">
               {mapCategory !== null ? <CategoryMap category={mapCategory} restaurants={filtered} selected={selected} busy={loading} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
             </section>
             <div id="search-page" className={'book-leaf search-leaf ' + (chapter === 'saved' ? 'saved-leaf' : '')} hidden={chapter === 'town'} tabIndex={-1}>
-              <div className="chapter-heading"><div><span className="book-kicker">{chapter === 'saved' ? 'CHAPTER 03 · 나의 수첩' : 'CHAPTER 02 · 맛집 찾기'}</span><h2>{chapter === 'saved' ? '다음에 또, 이 집.' : category === 'all' ? '한 끼를 찾아요' : `${categoryInfo(category).label} 맛집 찾기`}</h2></div><div className="chapter-actions">{chapter === 'search' && <button className="chapter-draw" onClick={draw} disabled={loading || searchBusy || !filtered.length} aria-label="현재 조건에서 한 집 뽑고 잇플에서 바로 보기" title="현재 검색·필터에 맞는 후보에서 무작위로 골라 잇플로 바로 이동해요"><Shuffle size={16}/><span>한 집 뽑기 ↗</span></button>}<button className="chapter-back" aria-label="동네 책장으로 돌아가기" onClick={() => turnPage('town')}><ArrowRight size={16}/>동네로</button></div></div>
+              <div className="chapter-heading"><div><span className="book-kicker">{chapter === 'saved' ? 'CHAPTER 03 · 나의 수첩' : 'CHAPTER 02 · 맛집 찾기'}</span><h2>{chapter === 'saved' ? '다음에 또, 이 집.' : category === 'all' ? '한 끼를 찾아요' : `${categoryInfo(category).label} 맛집 찾기`}</h2></div><div className="chapter-actions">{chapter === 'search' && <button className="chapter-draw" onClick={draw} disabled={loading || searchBusy || !filtered.length} title="현재 조건에 맞는 후보 중 한 곳을 골라 매장 페이지를 열어요"><Shuffle size={16}/><span>한 집 뽑기 ↗</span></button>}<button className="chapter-back" aria-label="동네 책장으로 돌아가기" onClick={() => turnPage('town')}><ArrowRight size={16}/>동네로</button></div></div>
       <section className="search-section" aria-label="맛집 검색과 필터">
         <p className="ai-search-label">✦ 누가 많이 찾는 곳인지도 물어보세요</p>
         <form className="search-row" role="search" onSubmit={e => { e.preventDefault(); void search(); }} aria-busy={searchBusy}><label className="search-box"><Search size={21}/><span className="sr-only">원하는 맛집 조건을 자연어로 입력</span><input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="30대 여성이 많이 찾는 카페" type="search" enterKeyHint="search" maxLength={MAX_SEARCH_LENGTH} aria-describedby="ai-search-help"/>{searchInput && <button type="button" aria-label="검색어 지우기" onClick={reset}><X size={17}/></button>}</label><button type="submit" className="search-submit" aria-label="AI 검색" disabled={searchBusy}>{searchBusy ? <RefreshCw size={17} className="spin"/> : 'AI 검색'}</button></form>

@@ -40,7 +40,20 @@ export function PaperShop({ color, roof, emoji }: {color:string;roof:string;emoj
 export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, busy, error, onRetry }: { onBrowse: (category: Category) => void; onCategory?: (category: Category) => void; onDraw: () => void; count: number; busy: boolean; error: string; onRetry: () => void }) {
   const [paused,setPaused]=useState(false);
   return <div className={`village-chapter paper-village ${paused?'village-paused':''}`}>
-    <div className="village-heading"><span className="book-kicker">CHAPTER 01 · 우리 동네 한 끼</span><h1>맛있는 골목으로<br/>놀러 오세요.</h1><p>뱅뱅사거리부터 강남역·양재역까지.<br/>마음 가는 가게를 톡, 맛집 지도가 열려요.</p><span className="paper-town-note">일곱 가지 맛이 모인 작은 동네</span></div>
+    <div className="village-intro">
+      <div className="village-heading"><span className="book-kicker">CHAPTER 01 · 우리 동네 한 끼</span><h1>맛있는 골목으로<br/>놀러 오세요.</h1><p>뱅뱅사거리부터 강남역·양재역까지.<br/>마음 가는 가게를 톡, 맛집 지도가 열려요.</p></div>
+      <div className="village-actions">
+        <button className="world-draw" onClick={onDraw} disabled={busy || !count} aria-describedby="village-draw-status">
+          <Shuffle size={21}/>한 집 뽑기<ArrowRight size={18}/>
+        </button>
+        <button className="world-search" onClick={() => onBrowse('all')}><Search size={18}/>원하는 조건으로 찾기</button>
+      </div>
+      <p id="village-draw-status" className="village-status" role="status">
+        {error ? <>{error} <button onClick={onRetry}>다시 불러오기</button></>
+          : busy ? '동네 맛집 정보를 가져오고 있어요.'
+          : count ? `${count}곳 중 한 곳을 골라 매장 페이지를 열어요.` : '지금 뽑을 수 있는 맛집이 없어요.'}
+      </p>
+    </div>
     <div className="paper-town" role="group" aria-label="음식 종류별 종이 마을">
       <svg className="paper-town-land" viewBox="0 0 600 640" aria-hidden="true">
         <path d="M30 94Q290-8 565 98L590 558Q340 662 18 557Z" fill="#c3ceac"/>
@@ -59,11 +72,9 @@ export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, bu
       <span className="paper-station station-yangjae"><i>3</i> 양재역 <small>1·4번 출구</small></span>
       <span className="paper-intersection">뱅뱅사거리</span><span className="paper-boulevard">강남대로</span>
       {shops.map(shop=><button key={shop.category} className="paper-shop" style={{left:`${shop.x}%`,top:`${shop.y}%`,'--shop-roof':shop.roof} as CSSProperties} onClick={()=>onCategory(shop.category)} aria-label={`${shop.label} 맛집 지도 펼치기`}><PaperShop color={shop.color} roof={shop.roof} emoji={shop.emoji}/><span className="paper-shop-label">{shop.label}<span>↗</span></span></button>)}
-      <button className="paper-town-mascot" onClick={onDraw} disabled={busy||!count} aria-label="오늘의 한 집을 뽑아 잇플에서 바로 보기"><span className="paper-mascot-bubble">뭐 먹을까요?</span><Mascot size={62}/></button>
+      <button className="paper-town-mascot" onClick={onDraw} disabled={busy||!count} aria-label="한 집 뽑기" aria-describedby="village-draw-status"><span className="paper-mascot-bubble">뭐 먹을까요?</span><Mascot size={62}/></button>
       <span className="paper-town-caption">음식 종류를 고르는 그림 지도예요</span>
     </div>
     <div className="village-controls paper-town-controls"><span>가게를 누르면 실제 매장 위치로!</span><button className="world-motion" aria-label={paused?'마을 움직임 켜기':'마을 움직임 끄기'} aria-pressed={paused} onClick={()=>setPaused(!paused)}>{paused?<Play size={14}/>:<Pause size={14}/>}</button></div>
-    <div className="village-actions"><button className="world-draw" onClick={onDraw} disabled={busy||!count}><Shuffle size={21}/>{busy?'맛집을 펼치는 중…':'한 집 뽑고 잇플 보기'}<ArrowRight size={18}/></button><button className="world-search" onClick={()=>onBrowse('all')}><Search size={18}/>원하는 조건으로 찾기</button></div>
-    <p className="village-status" role="status">{error?<>{error} <button onClick={onRetry}>다시 불러오기</button></>:busy?'동네 맛집 정보를 가져오고 있어요.':`${count}곳의 후보 · 현재 후보에서 무작위로 골라 잇플로 바로 이동해요.`}</p>
   </div>;
 }
