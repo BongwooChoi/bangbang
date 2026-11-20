@@ -1,6 +1,6 @@
 'use client';
 import { useState, type CSSProperties } from 'react';
-import { ArrowRight, Pause, Play, Search, Shuffle } from 'lucide-react';
+import { ArrowRight, Pause, Play, RefreshCw, Search, Shuffle } from 'lucide-react';
 import { type Category } from '@/lib/restaurants';
 import { Mascot } from './mascot';
 
@@ -39,18 +39,21 @@ export function PaperShop({ color, roof, emoji }: {color:string;roof:string;emoj
 
 export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, busy, error, onRetry }: { onBrowse: (category: Category) => void; onCategory?: (category: Category) => void; onDraw: () => void; count: number; busy: boolean; error: string; onRetry: () => void }) {
   const [paused,setPaused]=useState(false);
+  const needsRetry = Boolean(error) || count === 0;
   return <div className={`village-chapter paper-village ${paused?'village-paused':''}`}>
     <div className="village-intro">
       <div className="village-heading"><span className="book-kicker">CHAPTER 01 · 우리 동네 한 끼</span><h1>맛있는 골목으로<br/>놀러 오세요.</h1><p>뱅뱅사거리부터 강남역·양재역까지.<br/>마음 가는 가게를 톡, 맛집 지도가 열려요.</p></div>
       <div className="village-actions">
-        <button className="world-draw" onClick={onDraw} disabled={busy || !count} aria-describedby="village-draw-status">
-          <Shuffle size={21}/>한 집 뽑기<ArrowRight size={18}/>
+        <button className="world-draw" onClick={needsRetry ? onRetry : onDraw} disabled={busy} aria-busy={busy} aria-describedby="village-draw-status">
+          {busy || needsRetry ? <RefreshCw size={21} className={busy ? 'spin' : undefined}/> : <Shuffle size={21}/>}
+          {busy ? '맛집 후보를 찾는 중…' : needsRetry ? '맛집 다시 불러오기' : '한 집 뽑기'}
+          <ArrowRight size={18}/>
         </button>
         <button className="world-search" onClick={() => onBrowse('all')}><Search size={18}/>원하는 조건으로 찾기</button>
       </div>
       <p id="village-draw-status" className="village-status" role="status">
-        {error ? <>{error} <button onClick={onRetry}>다시 불러오기</button></>
-          : busy ? '동네 맛집 정보를 가져오고 있어요.'
+        {busy ? '후보를 불러오면 한 집을 뽑을 수 있어요.'
+          : error ? error
           : count ? `${count}곳 중 한 곳을 골라 매장 페이지를 열어요.` : '지금 뽑을 수 있는 맛집이 없어요.'}
       </p>
     </div>
