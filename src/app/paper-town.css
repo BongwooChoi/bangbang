@@ -126,6 +126,8 @@
   }
 
   .geo-floor {
+    /* Keep Leaflet's tile panes below the sibling restaurant pins. */
+    z-index: 0;
     filter: none;
   }
 
