@@ -8,7 +8,10 @@ import { CATEGORIES, categoryInfo, type Category, type Restaurant } from '@/lib/
 import { clusterMapPoints, type MapCluster } from '@/lib/map-clusters';
 import { EatplLink } from './eatpl-link';
 
-const WIDTH = 700, HEIGHT = 640;
+const AREA_BOUNDS = L.latLngBounds(AREA_POLYGON.map(p => [p.lat, p.lng] as [number, number]));
+function fitArea(map: L.Map, compact: boolean) {
+  map.fitBounds(AREA_BOUNDS, { padding: compact ? [24, 32] : [45, 45], animate: false });
+}
 type Props = { category: Category; restaurants: Restaurant[]; selected: Restaurant | null; busy: boolean; error: string; onCategory: (category: Category) => void; onBack: () => void; onList: () => void; onDraw: () => void; onRetry: () => void };
 export default function CategoryMap({ category, restaurants, selected, busy, error, onCategory, onBack, onList, onDraw, onRetry }: Props) {
   const container = useRef<HTMLDivElement>(null), camera = useRef<HTMLDivElement>(null), map = useRef<L.Map | null>(null);
@@ -16,42 +19,57 @@ export default function CategoryMap({ category, restaurants, selected, busy, err
   const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(.8), [zoom, setZoom] = useState(15);
   const [zone, setZone] = useState<Zone>('all'), [cluster, setCluster] = useState<Restaurant[]>([]);
+  const compact = useRef(false);
   const gesture = useRef<{ id: number; x: number; y: number; lastX: number; lastY: number; moved: boolean } | null>(null);
   const pointers = useRef(new Map<number, {x:number;y:number}>());
   const pinchDistance = useRef(0);
   const suppressClick = useRef(false);
   const info = categoryInfo(category);
   useEffect(() => {
-    if (!container.current) return;
+    const floor = container.current, viewport = camera.current;
+    if (!floor || !viewport) return;
     // Leaflet is the geographic ground plane. Our fixed 2D projection handles gestures;
     // transformed DOM bounds must never be interpreted as Leaflet drag pixels.
-    const instance = L.map(container.current, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomAnimation: false, fadeAnimation: false, minZoom: 14, maxZoom: 19 });
+    const narrow = window.matchMedia('(max-width: 767px)');
+    compact.current = narrow.matches;
+    const instance = L.map(floor, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomAnimation: false, fadeAnimation: false, minZoom: 14, maxZoom: 19, zoomSnap: .25 });
     map.current = instance;
     L.tileLayer(process.env.NEXT_PUBLIC_MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, keepBuffer: 1 }).on('tileerror', () => setTileError(true)).on('tileload', () => setTileError(false)).addTo(instance);
     L.polygon(AREA_POLYGON.map(p => [p.lat, p.lng] as [number, number]), { color: '#647d61', weight: 2, dashArray: '6 6', fillOpacity: .04, interactive: false }).addTo(instance);
     const changed = () => { setZoom(instance.getZoom()); setView(v => v + 1); };
     instance.on('moveend zoomend', changed);
-    instance.fitBounds(AREA_POLYGON.map(p => [p.lat, p.lng] as [number, number]), { padding: [45, 45], animate: false });
+    fitArea(instance, compact.current);
+    const resize = () => {
+      const layoutChanged = compact.current !== narrow.matches;
+      compact.current = narrow.matches;
+      setScale(compact.current ? 1 : Math.min(.84, Math.max(.25, (viewport.clientWidth - 32) / 790)));
+      instance.invalidateSize({ animate: false, pan: !layoutChanged });
+      if (layoutChanged) {
+        fitArea(instance, compact.current);
+        setZone('all');
+        setCluster([]);
+      }
+    };
+    const observer = new ResizeObserver(resize);
+    observer.observe(viewport);
+    narrow.addEventListener('change', resize);
+    resize();
     setReady(true);
-    return () => { instance.remove(); map.current = null; };
-  }, []);
-  useEffect(() => {
-    if (!camera.current) return;
-    const update = () => setScale(Math.min(.84, Math.max(.25, (camera.current!.clientWidth - 32) / 790)));
-    const observer = new ResizeObserver(update); observer.observe(camera.current); update();
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); narrow.removeEventListener('change', resize); instance.remove(); map.current = null; };
   }, []);
   useEffect(() => { setCluster([]); }, [category]);
   const clusters = useMemo(() => {
-    if (!ready || !map.current) return [];
-    const points = restaurants.map(restaurant => ({ restaurant, ...map.current!.latLngToContainerPoint([restaurant.lat, restaurant.lng]) })).filter(p => p.x >= 18 && p.x <= WIDTH - 18 && p.y >= 24 && p.y <= HEIGHT - 18);
+    const instance = map.current;
+    if (!ready || !instance) return [];
+    const size = instance.getSize();
+    const points = restaurants.map(restaurant => ({ restaurant, ...instance.latLngToContainerPoint([restaurant.lat, restaurant.lng]) })).filter(p => p.x >= 18 && p.x <= size.x - 18 && p.y >= 24 && p.y <= size.y - 18);
     return clusterMapPoints(points, 48 / scale);
   }, [restaurants, ready, view, scale]);
   const visibleCount = clusters.reduce((sum, group) => sum + group.restaurants.length, 0);
   function goTo(next: Zone) {
     setZone(next); setCluster([]);
     if (!map.current) return;
-    if (next === 'all') map.current.fitBounds(AREA_POLYGON.map(p => [p.lat, p.lng] as [number, number]), { padding: [45, 45], animate: false });
+    if (next === 'all') fitArea(map.current, compact.current);
     else {
       const center = next === 'gangnam' ? { lat: 37.4956, lng: 127.0288 } : next === 'yangjae' ? { lat: 37.4864, lng: 127.033 } : CENTER;
       map.current.setView([center.lat, center.lng], 17, { animate: false });
@@ -63,7 +81,7 @@ export default function CategoryMap({ category, restaurants, selected, busy, err
     const instance = map.current;
     if (instance) {
       const previousZoom = instance.getZoom();
-      instance.fitBounds(group.restaurants.map(r => [r.lat, r.lng] as [number, number]), { padding: [100, 100], maxZoom: 19, animate: false });
+      instance.fitBounds(group.restaurants.map(r => [r.lat, r.lng] as [number, number]), { padding: compact.current ? [44, 56] : [100, 100], maxZoom: 19, animate: false });
       if (instance.getZoom() <= previousZoom) instance.setZoom(Math.min(19, previousZoom + 1));
     }
   }
@@ -108,11 +126,11 @@ export default function CategoryMap({ category, restaurants, selected, busy, err
     }
     const x = (event.clientX - g.lastX) / scale, y = (event.clientY - g.lastY) / scale;
     // Inverse of the CSS ground matrix(1,-.08,.18,.82,0,0).
-    map.current?.panBy([-(.82*x-.18*y)/.8344,-(.08*x+y)/.8344], { animate: false });
+    map.current?.panBy(compact.current ? [-x, -y] : [-(.82*x-.18*y)/.8344,-(.08*x+y)/.8344], { animate: false });
     g.lastX = event.clientX; g.lastY = event.clientY;
   }
   return <section className="category-map-chapter" aria-label={`${info.label} 종이 지도`}>
-    <header className="geo-heading"><button className="geo-back" onClick={onBack}><ArrowLeft size={17}/>동네로</button><div><span className="book-kicker">POP-UP MAP · 실제 매장 위치</span><h1>{info.emoji} {info.label} 한 장 지도 <small>{restaurants.length}곳</small></h1></div><button className="geo-list" onClick={onList}><List size={17}/><span>목록</span></button></header>
+    <header className="geo-heading"><button className="geo-back" onClick={onBack} aria-label="동네로"><ArrowLeft size={17}/><span>동네로</span></button><div><span className="book-kicker">POP-UP MAP · 실제 매장 위치</span><h1>{info.emoji} {info.label} 한 장 지도 <small>{restaurants.length}곳</small></h1></div><button className="geo-list" onClick={onList}><List size={17}/><span>맛집 목록</span></button></header>
     <div className="geo-categories" aria-label="지도 음식 종류">{CATEGORIES.map(c => <button key={c.id} aria-pressed={category === c.id} onClick={() => onCategory(c.id)}>{c.emoji} {c.label}</button>)}</div>
     <div className="geo-neighborhoods" aria-label="지도 지역">{([{ id:'all',label:'전체 범위' },{ id:'gangnam',label:'강남역' },{ id:'bangbang',label:'뱅뱅사거리' },{ id:'yangjae',label:'양재역' }] as const).map(z => <button key={z.id} aria-pressed={zone === z.id} onClick={() => goTo(z.id)}>{z.label}</button>)}</div>
     <div ref={camera} className={`geo-camera ${dragging ? 'is-dragging' : ''}`} style={{ '--geo-scale':scale } as CSSProperties}

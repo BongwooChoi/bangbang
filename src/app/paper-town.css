@@ -27,6 +27,17 @@
 }
 
 @media (max-width: 767px) {
+  .book-page-scroll.book-page-scroll-mobile-flow {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  #results {
+    scroll-margin-top: 56px;
+  }
+
   .village-intro {
     width: 100%;
   }
@@ -66,3 +77,63 @@
 @media(max-width:767px){.paper-village{display:flex;flex-direction:column;padding:20px 12px 16px;overflow:visible}.paper-village .village-heading{width:100%;padding:0 10px;z-index:auto}.paper-village .village-heading h1{font-size:26px;line-height:1.35;margin:10px 0}.paper-village .village-heading p{font-size:11px;line-height:1.7;margin-bottom:0}.paper-town-note{display:none}.paper-town{width:100%;max-width:440px;margin-top:18px}.paper-shop-label{font-size:12px;gap:3px;min-height:26px;padding:2px 6px}.paper-shop-label>span{font-size:10px}.paper-town-sign{font-size:10px;letter-spacing:1px}.paper-town-mascot{width:48px;min-height:48px;left:44%;top:60%}.paper-town-mascot>svg{width:48px;height:48px}.paper-mascot-bubble{font-size:9px;padding:3px 6px}.paper-town-caption{font-size:9px;bottom:-3%}.paper-town-controls{margin-top:14px;font-size:11px}.paper-village .village-actions{width:100%;margin-top:8px}.paper-village .village-status{font-size:9px}.geo-camera{height:325px}.geo-controls{gap:9px;flex-wrap:wrap}.geo-pan-label{font-size:10px}.geo-heading .book-kicker{font-size:9px}.geo-heading h1{font-size:21px}.category-map-chapter{padding-top:12px}.geo-pin.is-single .geo-pin-label{max-width:100px}}
 @media(prefers-reduced-motion:reduce){.paper-steam,.paper-town-mascot,.category-map-chapter{animation:none}.paper-shop{transition:none}}
 @media(max-width:767px){.paper-station{font-size:11px;padding:4px 6px;gap:3px}.paper-station small{display:none}.paper-station i{width:15px;height:15px;font-size:9px}.station-gangnam{left:35%;top:8%}.station-yangjae{left:60%;bottom:-1%}.paper-intersection{font-size:11px;left:43%;top:56%;padding:4px 6px}.paper-boulevard{font-size:9px;left:51%;letter-spacing:2px}.paper-town-mascot{left:40%;top:64%;width:44px}.paper-town-mascot>svg{width:44px;height:44px}.paper-mascot-bubble{display:none}.paper-town-caption{bottom:-8%}.paper-town-controls{margin-top:35px}}
+
+@media (max-width: 767px) {
+  .geo-heading {
+    flex-wrap: nowrap;
+  }
+
+  .geo-heading > div {
+    order: 0;
+    flex-basis: auto;
+    min-width: 0;
+    margin-top: 0;
+  }
+
+  .geo-heading .book-kicker,
+  .geo-back span {
+    display: none;
+  }
+
+  .geo-back {
+    min-width: 44px;
+  }
+
+  .geo-heading h1 {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  .geo-heading h1 small {
+    display: block;
+    margin-left: 0;
+  }
+
+  .geo-camera {
+    height: clamp(360px, 62svh, 520px);
+    overflow: hidden;
+    border: 1px solid #d3c9ad;
+    border-radius: 8px;
+    box-shadow: 0 3px 0 #d6c7aa;
+  }
+
+  .geo-plane,
+  .geo-floor {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: none;
+  }
+
+  .geo-floor {
+    filter: none;
+  }
+
+  .geo-pin {
+    transform: none;
+  }
+
+  .geo-controls {
+    margin-top: 8px;
+  }
+}

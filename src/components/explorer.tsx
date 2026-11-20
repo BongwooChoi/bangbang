@@ -110,11 +110,16 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
   }
   function clearSearch() { setCustomerAges([]); searchRequest.current?.abort(); searchRequest.current = null; setSearchBusy(false); setSearchInput(''); setSearchData(undefined); setSearchIntent(undefined); setSearchError(''); }
   function reset() { clearSearch(); setCategory('all'); setZone('all'); setLocalOnly(false); setSavedOnly(false); setSharedOnly(false); setGroupOnly(false); setCustomerAge('all'); setCustomerGender('all'); setSort('recommended'); }
-  function focusBookPage(id: 'town-page' | 'search-page') {
+  function focusBookPage(id: 'town-page' | 'search-page' | 'results') {
     requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' });
-      document.getElementById(id)?.focus({ preventScroll: true });
+      const target = document.getElementById(id);
+      if (id === 'results') {
+        target?.scrollIntoView({ block: 'start', behavior: 'instant' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        bookScroll.current?.scrollTo({ top: 0, behavior: 'instant' });
+      }
+      target?.focus({ preventScroll: true });
     });
   }
   function turnPage(next: 'town' | 'search' | 'saved') {
@@ -123,7 +128,7 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
     setSavedOnly(next === 'saved'); setChapter(next); setMobileTab('list');
     focusBookPage(next === 'town' ? 'town-page' : 'search-page');
   }
-  function browseCategory(next: Category) { setMapCategory(null); reset(); setCategory(next); setChapter('search'); setMobileTab('list'); focusBookPage('search-page'); }
+  function browseCategory(next: Category, showResults = false) { setMapCategory(null); reset(); setCategory(next); setChapter('search'); setMobileTab('list'); focusBookPage(showResults ? 'results' : 'search-page'); }
   function openCategoryMap(next: Category) { reset(); setCategory(next); setMapCategory(next); setChapter('town'); focusBookPage('town-page'); }
   function openSaved() { turnPage(chapter === 'saved' ? 'town' : 'saved'); }
   async function search() {
@@ -165,6 +170,8 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
     else setInstallOpen(true);
   }
   const distance = (r: Restaurant) => r.distance >= 1000 ? `${(r.distance / 1000).toFixed(1)}km` : `${r.distance}m`;
+  const bookPageClass = chapter === 'town' && mapCategory === null ? 'book-page-scroll-home'
+    : chapter === 'saved' ? '' : 'book-page-scroll-mobile-flow';
   return <>
     <a href="#results" className="skip-link" onClick={e => { e.preventDefault(); turnPage('search'); requestAnimationFrame(() => { document.getElementById('results')?.focus(); }); }}>음식점 목록으로 건너뛰기</a>
     <header className="site-header">
@@ -189,9 +196,9 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
         </nav>
         <div className="open-book">
           <div className="book-spine" aria-hidden="true"/>
-          <div className={chapter === 'town' && mapCategory === null ? 'book-page-scroll book-page-scroll-home' : 'book-page-scroll'} ref={bookScroll}>
+          <div className={`book-page-scroll ${bookPageClass}`} ref={bookScroll}>
             <section id="town-page" className="book-leaf town-leaf" hidden={chapter !== 'town'} tabIndex={-1} aria-label="동네 펼치기">
-              {mapCategory !== null ? <CategoryMap category={mapCategory} restaurants={filtered} selected={selected} busy={loading} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
+              {mapCategory !== null ? <CategoryMap category={mapCategory} restaurants={filtered} selected={selected} busy={loading} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory, true)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
             </section>
             <div id="search-page" className={'book-leaf search-leaf ' + (chapter === 'saved' ? 'saved-leaf' : '')} hidden={chapter === 'town'} tabIndex={-1}>
               <div className="chapter-heading"><div><span className="book-kicker">{chapter === 'saved' ? 'CHAPTER 03 · 나의 수첩' : 'CHAPTER 02 · 맛집 찾기'}</span><h2>{chapter === 'saved' ? '다음에 또, 이 집.' : category === 'all' ? '한 끼를 찾아요' : `${categoryInfo(category).label} 맛집 찾기`}</h2></div><div className="chapter-actions">{chapter === 'search' && <button className="chapter-draw" onClick={draw} disabled={loading || searchBusy || !filtered.length} title="현재 조건에 맞는 후보 중 한 곳을 골라 매장 페이지를 열어요"><Shuffle size={16}/><span>한 집 뽑기 ↗</span></button>}<button className="chapter-back" aria-label="동네 책장으로 돌아가기" onClick={() => turnPage('town')}><ArrowRight size={16}/>동네로</button></div></div>
@@ -208,7 +215,7 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
         <details className="book-filter-drawer"><summary><SlidersHorizontal size={15}/> 방문 고객층·동네·단골 조건<span>{[customerAge !== 'all' || customerAges.length > 0, customerGender !== 'all', zone !== 'all', localOnly, groupOnly].filter(Boolean).length || ''}</span><ChevronDown size={14}/></summary><div className="explore-toolbar"><div className="zone-tabs" aria-label="동네 선택">{zones.map(z => <button key={z.id} aria-pressed={zone === z.id} className={zone === z.id ? 'active' : ''} onClick={() => setZone(z.id)}>{z.label}</button>)}</div><div className="discovery-filters"><button className={`local-toggle ${localOnly ? 'active' : ''}`} aria-pressed={localOnly} onClick={() => setLocalOnly(!localOnly)}><Heart size={15}/> 동네 단골 많은 곳</button><button className={`local-toggle group-toggle ${groupOnly ? 'active' : ''}`} aria-pressed={groupOnly} onClick={() => setGroupOnly(!groupOnly)}><UsersRound size={15}/> 회식 후보</button><RecommendationHelp/></div></div>
         {groupOnly && <p className="filter-explanation">저녁 시간대 단체 결제 이력이 있는 곳이에요. 좌석·예약 가능 여부는 매장에 확인해 주세요.</p>}
         <CustomerFilter age={customerAge} ages={customerAges} gender={customerGender} onAge={age => {setCustomerAges([]);setCustomerAge(age);setSearchIntent(current => current ? {...current,customerAge:age,customerAges:[]} : current);}} onGender={gender => {setCustomerGender(gender);setSearchIntent(current => current ? {...current,customerGender:gender} : current);}}/>
-        </details><div className="mobile-view-switch"><button aria-pressed={mobileTab === 'list'} onClick={() => setMobileTab('list')}><List size={16}/>목록으로</button><button aria-pressed={mobileTab === 'map'} onClick={() => setMobileTab('map')}><MapIcon size={16}/>지도로</button></div>
+        </details><div className="mobile-view-switch"><button aria-pressed={mobileTab === 'list'} onClick={() => { setMobileTab('list'); focusBookPage('results'); }}><List size={16}/>목록으로</button><button aria-pressed={mobileTab === 'map'} onClick={() => setMobileTab('map')}><MapIcon size={16}/>지도로</button></div>
         <div className={`explore-grid mobile-${mobileTab}`}>
           <div className="results-panel" id="results" tabIndex={-1}>
             <div className="results-heading"><h2>{savedOnly ? '담아둔 맛집' : sharedOnly ? '함께 고른 맛집' : '오늘의 맛집 후보'} <span>{loading && !data ? '…' : filtered.length}</span></h2><div className="result-actions"><button className="icon-button" aria-label="음식점 새로고침" onClick={() => void (searchIntent ? search() : refresh())} disabled={loading || searchBusy}><RefreshCw size={15} className={loading ? 'spin' : ''}/></button><label className="sort-select"><ArrowDownUp size={13}/><span className="sr-only">정렬</span><select value={sort} onChange={e => setSort(e.target.value)}><option value="recommended">뱅뱅 추천순</option><option value="distance">사거리 가까운 순</option><option value="rank">지역 매출 상위순</option></select><ChevronDown size={12}/></label></div></div>
