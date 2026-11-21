@@ -6,14 +6,13 @@ import { ArrowLeft, ArrowRight, List, Minus, Plus, RotateCcw, Shuffle, X } from 
 import { AREA_POLYGON, CENTER, type Zone } from '@/lib/geo';
 import { CATEGORIES, categoryInfo, type Category, type Restaurant } from '@/lib/restaurants';
 import { clusterMapPoints, type MapCluster } from '@/lib/map-clusters';
-import { EatplLink } from './eatpl-link';
 
 const AREA_BOUNDS = L.latLngBounds(AREA_POLYGON.map(p => [p.lat, p.lng] as [number, number]));
 function fitArea(map: L.Map, compact: boolean) {
   map.fitBounds(AREA_BOUNDS, { padding: compact ? [24, 32] : [45, 45], animate: false });
 }
-type Props = { category: Category; restaurants: Restaurant[]; selected: Restaurant | null; busy: boolean; error: string; onCategory: (category: Category) => void; onBack: () => void; onList: () => void; onDraw: () => void; onRetry: () => void };
-export default function CategoryMap({ category, restaurants, selected, busy, error, onCategory, onBack, onList, onDraw, onRetry }: Props) {
+type Props = { onSelect: (restaurant: Restaurant) => void; category: Category; restaurants: Restaurant[]; selected: Restaurant | null; busy: boolean; error: string; onCategory: (category: Category) => void; onBack: () => void; onList: () => void; onDraw: () => void; onRetry: () => void };
+export default function CategoryMap({ onSelect, category, restaurants, selected, busy, error, onCategory, onBack, onList, onDraw, onRetry }: Props) {
   const container = useRef<HTMLDivElement>(null), camera = useRef<HTMLDivElement>(null), map = useRef<L.Map | null>(null);
   const [ready, setReady] = useState(false), [view, setView] = useState(0), [tileError, setTileError] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -147,16 +146,18 @@ export default function CategoryMap({ category, restaurants, selected, busy, err
         <div className="geo-pins">{clusters.map(group => { const single = group.restaurants.length === 1; const content = <>
           <span className="geo-pin-label">{group.restaurants.length === 1 ? group.restaurants[0].name : `${group.restaurants.length}곳 모아보기`}</span><span className="geo-pin-face">{group.restaurants.length === 1 ? categoryInfo(group.restaurants[0].category).emoji : group.restaurants.length}</span><span className="geo-pin-foot"/>
         </>; const className = `geo-pin ${single ? 'is-single' : ''} ${group.restaurants.some(r => r.id === selected?.id) ? 'is-selected' : ''}`; const key = group.restaurants.map(r => r.id).join(','); const style = {left:group.x,top:group.y};
-          return single ? <EatplLink key={key} href={group.restaurants[0].eatplUrl} placement="list" className={className} style={style} aria-label={`${group.restaurants[0].name} 잇플에서 AI 요약·메뉴·지도 보기`}>{content}</EatplLink> : <button key={key} className={className} style={style} onClick={() => openCluster(group)} aria-label={`가까운 ${info.label} ${group.restaurants.length}곳 확대`}>{content}</button>;
+          return <button key={key} className={className} style={style}
+            onClick={() => single ? onSelect(group.restaurants[0]) : openCluster(group)}
+            aria-label={single ? `${group.restaurants[0].name} 선택` : `가까운 ${info.label} ${group.restaurants.length}곳 확대`}>{content}</button>;
         })}</div>
       </div>
       <span className="geo-north" aria-hidden="true">N ↑</span>
       <span className="geo-credit" dangerouslySetInnerHTML={{ __html: process.env.NEXT_PUBLIC_MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>' }}/>
     </div>
     <div className="geo-controls"><span className="geo-pan-label">밀어서 이동 · 두 손가락으로 확대</span><div className="geo-zoom"><button aria-label="지도 축소" disabled={!ready || zoom <= 14} onClick={() => map.current?.zoomOut()}><Minus size={18}/></button><button aria-label="지도 확대" disabled={!ready || zoom >= 19} onClick={() => map.current?.zoomIn()}><Plus size={18}/></button><button aria-label="지도 전체 보기" onClick={() => goTo('all')}><RotateCcw size={16}/></button></div></div>
-    <p className="geo-hint" role="status">{busy ? '매장 위치를 펼치고 있어요…' : error ? <>{error} <button onClick={onRetry}>다시 불러오기</button></> : restaurants.length === 0 ? '이 종류의 매장은 현재 조회되지 않아요. 다른 종류를 골라보세요.' : <>지도에 {visibleCount}곳 · 매장을 누르면 잇플에서 AI 요약·메뉴·지도를 바로 봐요.</>}</p>
+    <p className="geo-hint" role="status">{busy ? '매장 위치를 펼치고 있어요…' : error ? <>{error} <button onClick={onRetry}>다시 불러오기</button></> : restaurants.length === 0 ? '이 종류의 매장은 현재 조회되지 않아요. 다른 종류를 골라보세요.' : <>지도에 {visibleCount}곳 · 매장을 눌러 방문하거나 공유하세요.</>}</p>
     {tileError && <p className="geo-error">배경 지도를 불러오지 못했어요. 매장 위치 핀은 계속 표시됩니다.</p>}
-    {cluster.length > 0 && <aside className="geo-cluster-list" aria-label="가까운 매장"><div><strong>가까운 매장 {cluster.length}곳</strong><button onClick={() => setCluster([])} aria-label="가까운 매장 접기"><X size={16}/></button></div><p>매장을 고르면 잇플에서 AI 요약·메뉴·지도를 바로 봐요.</p><div className="geo-cluster-options">{cluster.map(r => <EatplLink key={r.id} href={r.eatplUrl} placement="list" aria-label={`${r.name} 잇플에서 AI 요약·메뉴·지도 보기`}>{categoryInfo(r.category).emoji} {r.name}<ArrowRight size={13}/></EatplLink>)}</div></aside>}
+    {cluster.length > 0 && <aside className="geo-cluster-list" aria-label="가까운 매장"><div><strong>가까운 매장 {cluster.length}곳</strong><button onClick={() => setCluster([])} aria-label="가까운 매장 접기"><X size={16}/></button></div><p>방문하거나 공유할 매장을 고르세요.</p><div className="geo-cluster-options">{cluster.map(r => <button key={r.id} onClick={() => onSelect(r)}>{categoryInfo(r.category).emoji} {r.name}<ArrowRight size={13}/></button>)}</div></aside>}
     <div className="geo-footer"><button className="geo-draw" onClick={onDraw} disabled={busy || !restaurants.length} title="후보 중 한 곳을 골라 매장 페이지를 열어요"><Shuffle size={16}/>{info.label}에서 한 집 뽑기</button></div>
   </section>;
 }

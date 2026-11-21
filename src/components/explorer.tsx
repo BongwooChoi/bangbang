@@ -23,7 +23,9 @@ const CategoryMap = dynamic(() => import('./category-map'), { ssr: false, loadin
 const zones: { id: Zone; label: string }[] = [{ id: 'all', label: '동네 전체' }, { id: 'bangbang', label: '뱅뱅사거리' }, { id: 'gangnam', label: '강남역 쪽' }, { id: 'yangjae', label: '양재역 쪽' }];
 type InstallEvent = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }> };
 
-export default function Explorer({ initialData, sharedIds = [], children }: { initialData?: RestaurantResponse; sharedIds?: string[]; children?: ReactNode }) {
+const noSharedIds: string[] = [];
+
+export default function Explorer({ initialData, sharedIds = noSharedIds, children }: { initialData?: RestaurantResponse; sharedIds?: string[]; children?: ReactNode }) {
   const [chapter, setChapter] = useState<'town' | 'search' | 'saved'>(sharedIds.length ? 'search' : 'town');
   const [mapCategory, setMapCategory] = useState<Category | null>(null);
   const bookScroll = useRef<HTMLDivElement>(null);
@@ -48,6 +50,7 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
   const [savedOnly, setSavedOnly] = useState(false);
   const [sharedOnly, setSharedOnly] = useState(sharedIds.length > 0);
   const [selected, setSelected] = useState<Restaurant | null>(null);
+  const [mapRestaurant, setMapRestaurant] = useState<Restaurant | null>(null);
   const [shareRows, setShareRows] = useState<Restaurant[]>([]);
   const [infoOpen, setInfoOpen] = useState(false);
   const [installOpen, setInstallOpen] = useState(false);
@@ -198,7 +201,7 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
           <div className="book-spine" aria-hidden="true"/>
           <div className={`book-page-scroll ${bookPageClass}`} ref={bookScroll}>
             <section id="town-page" className="book-leaf town-leaf" hidden={chapter !== 'town'} tabIndex={-1} aria-label="동네 펼치기">
-              {mapCategory !== null ? <CategoryMap category={mapCategory} restaurants={filtered} selected={selected} busy={loading} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory, true)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
+              {mapCategory !== null ? <CategoryMap onSelect={setMapRestaurant} category={mapCategory} restaurants={filtered} selected={selected} busy={loading} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory, true)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
             </section>
             <div id="search-page" className={'book-leaf search-leaf ' + (chapter === 'saved' ? 'saved-leaf' : '')} hidden={chapter === 'town'} tabIndex={-1}>
               <div className="chapter-heading"><div><span className="book-kicker">{chapter === 'saved' ? 'CHAPTER 03 · 나의 수첩' : 'CHAPTER 02 · 맛집 찾기'}</span><h2>{chapter === 'saved' ? '다음에 또, 이 집.' : category === 'all' ? '한 끼를 찾아요' : `${categoryInfo(category).label} 맛집 찾기`}</h2></div><div className="chapter-actions">{chapter === 'search' && <button className="chapter-draw" onClick={draw} disabled={loading || searchBusy || !filtered.length} title="현재 조건에 맞는 후보 중 한 곳을 골라 매장 페이지를 열어요"><Shuffle size={16}/><span>한 집 뽑기 ↗</span></button>}<button className="chapter-back" aria-label="동네 책장으로 돌아가기" onClick={() => turnPage('town')}><ArrowRight size={16}/>동네로</button></div></div>
@@ -230,7 +233,7 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
             </div>
             <div className="data-note"><span>🌾</span><p>eat.pl 잇플 · BC카드 결제 데이터 기반<br/><small>최근 1개월 기준 · 매출 백분위는 낮을수록 상위</small></p></div>
           </div>
-          <div className="map-panel">{!loading && !error && data && filtered.length === 0 && <div className="map-empty-state" role="status"><p>이 조건에 맞는 맛집은 아직 없어요.<br/>고객층이나 다른 필터를 바꿔볼까요?</p><button className="secondary-button" onClick={reset}>필터 모두 초기화</button></div>}{!loading && !error && <RecommendedPick restaurant={recommended} onSelect={setSelected}/>}<MapView restaurants={filtered} selected={selected} zone={zone} onNotice={toast}/><div className="map-footer"><span><i/> 강남역 1·8번 ↔ 양재역 1·4번 출구 사이</span><button onClick={() => setInfoOpen(true)}>범위 안내 <Info size={13}/></button></div></div>
+          <div className="map-panel">{!loading && !error && data && filtered.length === 0 && <div className="map-empty-state" role="status"><p>이 조건에 맞는 맛집은 아직 없어요.<br/>고객층이나 다른 필터를 바꿔볼까요?</p><button className="secondary-button" onClick={reset}>필터 모두 초기화</button></div>}{!loading && !error && <RecommendedPick restaurant={recommended} onSelect={setSelected}/>}<MapView onSelect={setMapRestaurant} restaurants={filtered} selected={selected} zone={zone} onNotice={toast}/><div className="map-footer"><span><i/> 강남역 1·8번 ↔ 양재역 1·4번 출구 사이</span><button onClick={() => setInfoOpen(true)}>범위 안내 <Info size={13}/></button></div></div>
         </div>
       </section>
             </div>
@@ -242,6 +245,18 @@ export default function Explorer({ initialData, sharedIds = [], children }: { in
       <details className="book-about"><summary>뱅뱅사거리 맛집 지도 · 데이터와 이용 안내</summary>{children}</details>
       <footer className="site-footer"><span>뱅뱅밥 · 같이 만드는 동네 지도</span><div><a href="/guide">지역·추천 안내</a><a href="https://github.com/BongwooChoi/bangbang" target="_blank" rel="noopener noreferrer">GitHub에서 함께 만들기 <ExternalLink size={12}/></a><button onClick={() => setInfoOpen(true)}>데이터·이용 안내</button></div></footer>
     </main>
+    {mapRestaurant && <Dialog title={mapRestaurant.name} onClose={() => setMapRestaurant(null)}>
+      <p className="detail-address">{mapRestaurant.address}</p>
+      <div className="detail-buttons">
+        <EatplLink className="primary-button" href={mapRestaurant.eatplUrl} placement="list">
+          식당 방문 <small>잇플</small><ExternalLink size={16}/>
+        </EatplLink>
+        <button className="secondary-button" onClick={() => {
+          setShareRows([mapRestaurant]);
+          setMapRestaurant(null);
+        }}><Share2 size={16}/>식당 공유</button>
+      </div>
+    </Dialog>}
     {selected && <Dialog title="오늘은 여기 어때요?" onClose={() => setSelected(null)} footer={<RestaurantNextStep restaurant={selected} onBack={() => setSelected(null)} onShare={() => { setShareRows([selected]); setSelected(null); }}/> }><div className={`detail-art food-art-${selected.category}`}><span>{categoryInfo(selected.category).emoji}</span><span className="detail-art-note">맛있는 발견!</span></div><div className="detail-title"><div><span className="card-area">{selected.genre} · 사거리에서 직선 {distance(selected)}</span><h3>{selected.name}</h3></div><button className={`save-button ${saved.includes(selected.id) ? 'is-saved' : ''}`} onClick={() => toggleSave(selected)} aria-label={`${selected.name} ${saved.includes(selected.id) ? '담기 해제' : '담기'}`} aria-pressed={saved.includes(selected.id)}><Bookmark fill={saved.includes(selected.id) ? 'currentColor' : 'none'}/></button></div><p className="detail-address">{selected.address}</p><RecommendationReasons restaurant={selected}/><div className="rank-grid"><div><small>전국 동일 업종 매출</small><strong>{selected.nationalRank === null ? '미확인' : `상위 ${selected.nationalRank}%`}</strong></div><div><small>시·군·구 동일 업종 매출</small><strong>{selected.localRank === null ? '미확인' : `상위 ${selected.localRank}%`}</strong></div></div><dl className="detail-facts"><div><dt>영업 예상 시간</dt><dd>{selected.hours || '미확인'}</dd></div>{selected.localFavorite && <div><dt>동네 단골</dt><dd>동네 고객 비율이 지역 평균보다 높아요</dd></div>}{selected.groupDining && <div><dt>회식 후보</dt><dd>저녁 단체 결제 이력이 있어요</dd></div>}</dl><BusyDetails restaurant={selected}/><CustomerDetails groups={selected.customerGroups}/><p className="fine-print">최근 1개월 결제 데이터에 따른 추정이에요. 공식 영업시간·실시간 대기 정보가 아니며, 현재 영업 현황은 잇플에서 확인해 주세요.</p></Dialog>}
     {shareRows.length > 0 && <Dialog title="맛있는 건 같이 나눠요" onClose={() => setShareRows([])}><div className="share-illustration">💌</div><p className="share-intro">{shareRows.map(r => r.name).join(', ')}<br/><span>같이 먹을 사람에게 보내볼까요?</span></p><div className="share-options">{(process.env.NEXT_PUBLIC_KAKAO_JS_KEY || nativeShare) && <button className="kakao-button" disabled={shareBusy} onClick={() => void share('kakao')}><MessageCircle size={22}/><strong>카카오톡으로 공유</strong>{!process.env.NEXT_PUBLIC_KAKAO_JS_KEY && <small>기기 공유 창에서 카카오톡 선택</small>}</button>}{nativeShare && <button disabled={shareBusy} onClick={() => void share('native')}><Share2 size={21}/><strong>다른 앱으로 공유</strong><small>메시지, SNS 등</small></button>}<button disabled={shareBusy} onClick={() => void share('copy')}>{copied ? <Check size={22}/> : <Copy size={22}/>}<strong>{copied ? '링크를 복사했어요' : '링크 복사'}</strong><small>어디든 붙여넣어 보내요</small></button></div>{!nativeShare && !process.env.NEXT_PUBLIC_KAKAO_JS_KEY && <p className="fine-print">링크를 복사해 카카오톡이나 원하는 SNS에 붙여넣어 주세요.</p>}{mounted && <label className="share-link-label">공유 링크<input aria-label="복사할 공유 링크" readOnly value={sharedContent(shareRows).url} onFocus={e => e.target.select()}/></label>}</Dialog>}
     {infoOpen && <Dialog title="뱅뱅밥을 소개해요" onClose={() => setInfoOpen(false)}><div className="info-mascot"><Mascot size={80}/><p>우리 동네 점심 고민을<br/><strong>조금 더 가볍게.</strong></p></div><div className="info-block"><h3>어디까지 보여주나요?</h3><p>강남역 1·8번 출구와 양재역 1·4번 출구를 잇는 경계 사이, 강남대로 중심선 양쪽 약 400m의 음식점을 찾아요. 뱅뱅사거리가 지도 중심이에요.</p></div><div className="info-block"><h3>어떤 맛집인가요?</h3><p>eat.pl 잇플의 최근 1개월 BC카드 결제 데이터를 활용해요. 매출 순위는 맛이나 별점 순위와 달라요. 조회 가능한 후보를 모아 보여드리며 모든 음식점을 포함하지는 않아요. 업종은 제공된 분류를 따르므로 실제 매장과 다를 수 있어요.</p></div><div className="info-block"><h3>저장과 개인정보</h3><p>담은 맛집의 식별자만 이 브라우저에 저장해요. 위치는 내 위치 버튼을 눌렀을 때 지도 표시에만 사용하며 서버로 보내지 않아요. 지도 표시에는 OpenStreetMap, 맛집 조회에는 k-skill의 잇플 연동을 이용해요.</p></div><div className="info-block"><h3>함께 만드는 지도</h3><p>잘못된 표시나 좋은 아이디어가 있나요? <a href="https://github.com/BongwooChoi/bangbang/issues" target="_blank" rel="noopener noreferrer">GitHub에 의견을 남겨주세요.</a> 이 프로젝트는 BC카드의 공식 서비스가 아니에요.</p></div>{data && <p className="fine-print">마지막 조회: {mounted ? new Date(data.fetchedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : data.fetchedAt.slice(0, 10)} · 실제 방문 전 매장 정보를 확인해 주세요.</p>}</Dialog>}
