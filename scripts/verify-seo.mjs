@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 const target = new URL(process.argv[2] || 'http://127.0.0.1:3000');
 const canonical = new URL(process.argv[3] || 'https://bangbang-five.vercel.app');
-const checks = ['/', '/guide', '/robots.txt', '/sitemap.xml', '/llms.txt', '/share', '/offline.html'];
+const checks = ['/', '/guide', '/privacy', '/robots.txt', '/sitemap.xml', '/llms.txt', '/share', '/offline.html'];
 const results = await Promise.all(checks.map(async path => {
   const response = await fetch(new URL(path, target), { signal: AbortSignal.timeout(15000) });
   assert.equal(response.status, 200, `${path} status`);
@@ -26,6 +26,13 @@ for (const path of ['/', '/guide']) {
   assert.ok(visibleHtml(text).includes('양재역'), `${path} area content`);
 }
 assert.ok(pages['/'].text.includes('href="/guide"'), 'guide discoverable from home');
+for (const fragment of ['faq', 'about']) {
+  assert.ok(pages['/'].text.includes(`href="/guide#${fragment}"`), 'home links to guide section');
+  assert.ok(pages['/guide'].text.includes(`id="${fragment}"`), 'linked guide section exists');
+}
+assert.ok(pages['/'].text.includes('href="/privacy"'));
+assert.ok(pages['/privacy'].text.includes(`rel="canonical" href="${new URL('/privacy', canonical).href}"`));
+assert.ok(scripts(pages['/'].text).some(item => item['@type'] === 'WebApplication' && item.name === '뱅뱅밥'));
 const faq = scripts(pages['/guide'].text).flatMap(item => item['@graph'] || []).find(item => item['@type'] === 'FAQPage');
 assert.ok(faq?.mainEntity.length >= 7, 'structured FAQ available');
 const guideText = visibleHtml(pages['/guide'].text);
@@ -38,7 +45,7 @@ assert.match(pages['/robots.txt'].text, /Allow: \/\s/);
 assert.match(pages['/robots.txt'].text, /Disallow: \/api\//);
 assert.ok(pages['/robots.txt'].text.includes(new URL('/sitemap.xml', canonical).href));
 const locations = [...pages['/sitemap.xml'].text.matchAll(/<loc>(.*?)<\/loc>/g)].map(match => match[1]);
-assert.deepEqual(locations.sort(), ['/', '/guide'].map(path => new URL(path, canonical).href).sort());
+assert.deepEqual(locations.sort(), ['/', '/guide', '/privacy'].map(path => new URL(path, canonical).href).sort());
 assert.match(pages['/llms.txt'].response.headers.get('content-type'), /text\/plain/);
 assert.ok(pages['/llms.txt'].text.includes(new URL('/guide', canonical).href));
 assert.match(pages['/share'].response.headers.get('x-robots-tag'), /noindex/);

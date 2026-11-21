@@ -139,3 +139,22 @@
     margin-top: 8px;
   }
 }
+
+@media (max-width: 767px) {
+  .book-experience .site-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .book-experience .site-footer > div {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 14px;
+  }
+  .book-experience .site-footer a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

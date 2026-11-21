@@ -243,7 +243,11 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
       </div>
       <section className="bottom-note"><span>한 끼의 고민은 작게, 맛있는 발견은 크게.</span><span>우리 동네에서 잘 먹고, 잘 지내요 <span aria-hidden="true">☘</span></span></section>
       <details className="book-about"><summary>뱅뱅사거리 맛집 지도 · 데이터와 이용 안내</summary>{children}</details>
-      <footer className="site-footer"><span>뱅뱅밥 · 같이 만드는 동네 지도</span><div><a href="/guide">지역·추천 안내</a><a href="https://github.com/BongwooChoi/bangbang" target="_blank" rel="noopener noreferrer">GitHub에서 함께 만들기 <ExternalLink size={12}/></a><button onClick={() => setInfoOpen(true)}>데이터·이용 안내</button></div></footer>
+      <footer className="site-footer"><span>뱅뱅밥 · 같이 만드는 동네 지도</span><div>
+        <a href="/guide#about">서비스 소개</a><a href="/guide#faq">자주 묻는 질문</a>
+        <a href="https://github.com/BongwooChoi/bangbang/issues">문의·오류 제보</a>
+        <a href="/privacy">개인정보 처리 안내</a>
+      </div></footer>
     </main>
     {mapRestaurant && <Dialog title={mapRestaurant.name} onClose={() => setMapRestaurant(null)}>
       <p className="detail-address">{mapRestaurant.address}</p>

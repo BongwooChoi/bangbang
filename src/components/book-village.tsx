@@ -42,7 +42,7 @@ export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, bu
   const needsRetry = Boolean(error) || count === 0;
   return <div className={`village-chapter paper-village ${paused?'village-paused':''}`}>
     <div className="village-intro">
-      <div className="village-heading"><span className="book-kicker">CHAPTER 01 · 우리 동네 한 끼</span><h1>맛있는 골목으로<br/>놀러 오세요.</h1><p>뱅뱅사거리부터 강남역·양재역까지.<br/>마음 가는 가게를 톡, 맛집 지도가 열려요.</p></div>
+      <div className="village-heading"><span className="book-kicker">CHAPTER 01 · 우리 동네 한 끼</span><h1>뱅뱅사거리<br/>점심 맛집 지도</h1><p>강남역부터 양재역까지, 오늘은 어디서 먹을까요?<br/>가게 그림을 누르면 음식 종류별 지도가 열려요.</p></div>
       <div className="village-actions">
         <button className="world-draw" onClick={needsRetry ? onRetry : onDraw} disabled={busy} aria-busy={busy} aria-describedby="village-draw-status">
           {busy || needsRetry ? <RefreshCw size={21} className={busy ? 'spin' : undefined}/> : <Shuffle size={21}/>}
