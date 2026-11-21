@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { ArrowLeft, ArrowRight, List, Minus, Plus, RotateCcw, Shuffle, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, List, Minus, Plus, RotateCcw, Shuffle } from 'lucide-react';
+import { Dialog } from './dialog';
 import { AREA_POLYGON, CENTER, type Zone } from '@/lib/geo';
 import { CATEGORIES, categoryInfo, type Category, type Restaurant } from '@/lib/restaurants';
 import { clusterMapPoints, type MapCluster } from '@/lib/map-clusters';
@@ -157,7 +158,13 @@ export default function CategoryMap({ onSelect, category, restaurants, selected,
     <div className="geo-controls"><span className="geo-pan-label">밀어서 이동 · 두 손가락으로 확대</span><div className="geo-zoom"><button aria-label="지도 축소" disabled={!ready || zoom <= 14} onClick={() => map.current?.zoomOut()}><Minus size={18}/></button><button aria-label="지도 확대" disabled={!ready || zoom >= 19} onClick={() => map.current?.zoomIn()}><Plus size={18}/></button><button aria-label="지도 전체 보기" onClick={() => goTo('all')}><RotateCcw size={16}/></button></div></div>
     <p className="geo-hint" role="status">{busy ? '매장 위치를 펼치고 있어요…' : error ? <>{error} <button onClick={onRetry}>다시 불러오기</button></> : restaurants.length === 0 ? '이 종류의 매장은 현재 조회되지 않아요. 다른 종류를 골라보세요.' : <>지도에 {visibleCount}곳 · 매장을 눌러 방문하거나 공유하세요.</>}</p>
     {tileError && <p className="geo-error">배경 지도를 불러오지 못했어요. 매장 위치 핀은 계속 표시됩니다.</p>}
-    {cluster.length > 0 && <aside className="geo-cluster-list" aria-label="가까운 매장"><div><strong>가까운 매장 {cluster.length}곳</strong><button onClick={() => setCluster([])} aria-label="가까운 매장 접기"><X size={16}/></button></div><p>방문하거나 공유할 매장을 고르세요.</p><div className="geo-cluster-options">{cluster.map(r => <button key={r.id} onClick={() => onSelect(r)}>{categoryInfo(r.category).emoji} {r.name}<ArrowRight size={13}/></button>)}</div></aside>}
+    {cluster.length > 0 && <Dialog title={`가까운 매장 ${cluster.length}곳`} onClose={() => setCluster([])}>
+      <div className="geo-cluster-options">
+        {cluster.map(r => <button key={r.id} onClick={() => onSelect(r)}>
+          <span>{categoryInfo(r.category).emoji} {r.name}</span><ArrowRight size={16}/>
+        </button>)}
+      </div>
+    </Dialog>}
     <div className="geo-footer"><button className="geo-draw" onClick={onDraw} disabled={busy || !restaurants.length} title="후보 중 한 곳을 골라 매장 페이지를 열어요"><Shuffle size={16}/>{info.label}에서 한 집 뽑기</button></div>
   </section>;
 }
