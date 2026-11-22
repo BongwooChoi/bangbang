@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateSearchIntent, searchIntentLabels, type SearchIntent } from '../src/lib/search-intent';
 import { searchCandidates } from '../src/lib/search-filters';
+import { knownMerchantName, includeCatalogMatches, merchantIntent } from '../src/lib/merchant-search';
 import { parseCustomerGroups } from '../src/lib/customers';
 import type { Restaurant } from '../src/lib/restaurants';
 
@@ -25,4 +26,18 @@ test('OR food categories and exclusions combine with one matching age/gender gro
  assert.deepEqual(searchCandidates([row,mixed],{...selected,customerGender:'all'}).map(r=>r.id),['mixed']);
  assert.throws(()=>validateSearchIntent({...intent,customerAges:['all']}));
  assert.throws(()=>validateSearchIntent({...intent,includedCategories:['invalid']}));
+});
+
+test('direct names ignore spaces and corporate prefixes while mixed queries retain separate filters', () => {
+  const store = { ...row, name: '㈜가상막국수' };
+  const branch = { ...row, name: '가상 막국수 강남점', id: 'branch', zone: 'gangnam' as const };
+  const catalog = [store, branch, { ...row, id: 'other', name: '테스트 국수집' }];
+  assert.equal(knownMerchantName('가상 막국수', catalog), '가상막국수');
+  assert.equal(knownMerchantName('강남역 근처 가상막국수', catalog), undefined);
+  assert.equal(knownMerchantName('막국수', catalog), undefined);
+  const query = { ...merchantIntent('가상막국수'), zone: 'gangnam' as const };
+  const matches = includeCatalogMatches([branch], catalog, query);
+  assert.deepEqual(matches.map(r => r.id), ['branch', 'a']);
+  assert.deepEqual(searchCandidates(matches, query).map(r => r.id), ['branch']);
+  assert.deepEqual(includeCatalogMatches([], catalog, merchantIntent('없는상호')), []);
 });

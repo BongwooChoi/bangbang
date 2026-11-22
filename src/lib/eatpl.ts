@@ -24,12 +24,12 @@ export async function loadRestaurants(filters: { merNm?: string; merTpbuzNm?: st
   // Base and supplemental phases share a deadline within the route's 30s budget.
   const deadline = AbortSignal.timeout(24_000);
   let rateLimited = false;
-  async function search(location: string, genre?: string) {
+  async function search(location: string, genre?: string, merchant = filters.merNm) {
     deadline.throwIfAborted();
     if (rateLimited) throw new Error('upstream_rate_limited');
     const url = new URL(`${base}/v1/bccard-eatpl/search`);
     url.searchParams.set('location', location);
-    if (filters.merNm) url.searchParams.set('merNm', filters.merNm);
+    if (merchant) url.searchParams.set('merNm', merchant);
     if (genre) url.searchParams.set('merTpbuzNm', genre);
     const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.any([deadline, AbortSignal.timeout(12_000)]), headers: { 'Accept': 'application/json' } });
     // Do not retry or continue queued requests after a provider throttle response.
@@ -42,16 +42,24 @@ export async function loadRestaurants(filters: { merNm?: string; merTpbuzNm?: st
   const results = await Promise.allSettled(SEARCH_STREETS.map(location => search(location, filters.merTpbuzNm ?? undefined)));
   const successful = results.filter(r => r.status === 'fulfilled');
   if (!successful.length) throw new Error('restaurants_unavailable');
+  const compactName = filters.merNm?.replace(/\s+/g, '');
+  // A provider literal search can miss a registered name written without spaces.
+  const retryCompactName = compactName && compactName !== filters.merNm && successful.length === results.length
+    && successful.every(result => !result.value.restaurants.length);
+  const nameMatches = retryCompactName
+    ? await settleWithLimit(SEARCH_STREETS.map(location => () => search(location, filters.merTpbuzNm ?? undefined, compactName)))
+    : [];
   // A full response can omit lower-ranked categories before our boundary filter.
   // Only saturated roads need category searches; keep the same geography.
   const cappedStreets = filters.merTpbuzNm ? [] : SEARCH_STREETS.filter((_, i) => results[i].status === 'fulfilled' && results[i].value.atLimit);
   const supplements = await settleWithLimit(SUPPLEMENTAL_GENRES.flatMap(genre =>
     cappedStreets.map(location => () => search(location, genre))));
   const unique = new Map<string, Restaurant>();
-  [...results, ...supplements].forEach(result => {
+  const allResults = [...results, ...nameMatches, ...supplements];
+  allResults.forEach(result => {
     if (result.status === 'fulfilled') result.value.restaurants.forEach(item => {
       if (!unique.has(item.id)) unique.set(item.id, item);
     });
   });
-  return { restaurants: [...unique.values()].sort((a, b) => a.distance - b.distance), fetchedAt: new Date().toISOString(), partial: [...results, ...supplements].some(r => r.status === 'rejected') };
+  return { restaurants: [...unique.values()].sort((a, b) => a.distance - b.distance), fetchedAt: new Date().toISOString(), partial: allResults.some(r => r.status === 'rejected') };
 }

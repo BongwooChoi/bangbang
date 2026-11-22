@@ -27,6 +27,19 @@ test('all upstream failures return an error instead of fake or stale restaurant 
   await assert.rejects(loadRestaurants(), /restaurants_unavailable/);
 });
 
+test('a spaced name with no matches retries the compact name within the same streets and genre', async t => {
+  const calls: string[] = [];
+  t.mock.method(globalThis, 'fetch', async (url: URL) => {
+    const name = url.searchParams.get('merNm')!;
+    calls.push(name);
+    assert.equal(url.searchParams.get('merTpbuzNm'), '카페');
+    return Response.json({ items: name === '가상카페' ? [{ ...fixture('name'), merNm: name }] : [] });
+  });
+  const result = await loadRestaurants({ merNm: '가상 카페', merTpbuzNm: '카페' });
+  assert.deepEqual(calls, [...SEARCH_STREETS.map(() => '가상 카페'), ...SEARCH_STREETS.map(() => '가상카페')]);
+  assert.deepEqual(result.restaurants.map(r => r.id), ['name']);
+});
+
 test('only capped roads receive bounded category searches; new restaurants merge without duplicates or out-of-area rows', async t => {
   const calls: URL[] = [];
   const original = fixture('base');

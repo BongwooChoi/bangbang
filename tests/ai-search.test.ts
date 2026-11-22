@@ -64,6 +64,21 @@ test('route rejects invalid, oversized and cross-origin requests before spending
   assert.equal(mocked.mock.callCount(), 0);
 });
 
+test('an exact catalog name uses the registered spelling and does not acquire food or zone filters', async t => {
+  const mocked = t.mock.method(globalThis, 'fetch', async (url: URL) => {
+    assert.equal(url.searchParams.get('merNm'), '가상막국수');
+    assert.equal(url.searchParams.has('merTpbuzNm'), false);
+    return Response.json({ items: [] });
+  });
+  const response = await POST(new Request('https://example.com/api/search', { method: 'POST',
+    headers: { 'content-type': 'application/json' }, body: JSON.stringify({ input: '가상 막국수', merchantName: '가상막국수' }) }));
+  assert.equal(response.status, 200);
+  assert.equal(mocked.mock.callCount(), 5);
+  const { intent } = await response.json();
+  assert.equal(intent.zone, 'all');
+  assert.equal(intent.merNm, '가상막국수');
+});
+
 test('unverified wishes keep usable OR ages and meal conditions in a successful search', async t => {
   t.mock.method(globalThis, 'fetch', async (url: string | URL | Request) => String(url).includes('api.openai.com')
     ? completed({...intent,merTpbuzNm:null,zone:'all',localOnly:false,customerAges:['30','40'],mealOnly:true,unsupported:['가격·예산','분위기·혼밥']})
