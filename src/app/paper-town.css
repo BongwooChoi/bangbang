@@ -158,5 +158,31 @@
     min-height: 44px;
   }
 }
-.village-meal-name { display: block; overflow-wrap: anywhere; color: #394b38; }
-.village-meal-link { display: inline-flex; align-items: center; min-height: 44px; pointer-events: auto; color: #37583f; font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.village-meal-card {
+  pointer-events: auto;
+  background: #fff9ec;
+  border: 2px solid #c7956e;
+  border-radius: 8px 16px 12px 8px;
+  box-shadow: 3px 4px 0 #ddcdb3;
+  padding: 8px 14px 14px;
+  text-align: left;
+}
+.village-meal-top, .village-meal-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.village-meal-top { color: #835233; font-size: 13px; font-weight: 700; }
+.village-meal-top button {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 44px;
+  padding: 0 5px; color: #425d47; background: transparent; font-size: 13px;
+}
+.village-meal-name { display: block; overflow-wrap: anywhere; color: #283d30; font-size: clamp(23px, 3vw, 31px); font-weight: 850; line-height: 1.2; }
+.paper-village .village-meal-card p { margin: 5px 0 12px; font-size: 13px; line-height: 1.5; color: #605b4d; overflow-wrap: anywhere; }
+.village-meal-link {
+  min-height: 46px; padding: 8px 12px; border-radius: 7px; background: #33573e;
+  color: white; font-size: 15px; font-weight: 750; line-height: 1.35; text-decoration: none;
+}
+.village-meal-link:hover { background: #25432e; }
+.village-meal-link:focus-visible, .village-meal-top button:focus-visible { outline: 3px solid #a94727; outline-offset: 2px; }

@@ -1,9 +1,8 @@
 'use client';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ArrowRight, Pause, Play, RefreshCw, Search, Shuffle } from 'lucide-react';
 import type { Category, Restaurant } from '@/lib/restaurants';
 import { seoulMealPeriod } from '@/lib/meal-period';
-import { recommendationReasons } from '@/lib/recommendation';
 import { EatplLink } from './eatpl-link';
 import { Mascot } from './mascot';
 
@@ -40,8 +39,22 @@ export function PaperShop({ color, roof, emoji }: {color:string;roof:string;emoj
   </svg>;
 }
 
-export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, busy, error, onRetry, mealPick }: { onBrowse: (category: Category) => void; onCategory?: (category: Category) => void; onDraw: () => void; count: number; busy: boolean; error: string; onRetry: () => void; mealPick?: Restaurant }) {
+export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, busy, error, onRetry, meals }: { onBrowse: (category: Category) => void; onCategory?: (category: Category) => void; onDraw: () => void; count: number; busy: boolean; error: string; onRetry: () => void; meals?: Restaurant[] }) {
   const [paused,setPaused]=useState(false);
+  const [mealPick, setMealPick] = useState<Restaurant>();
+  const previousId = useRef('');
+  const pickMeal = useCallback(() => {
+    if (!meals?.length) { setMealPick(undefined); return; }
+    if (!previousId.current) {
+      try { previousId.current = sessionStorage.getItem('bangbang-last-meal') ?? ''; } catch { /* Storage is optional. */ }
+    }
+    const choices = meals.length > 1 ? meals.filter(r => r.id !== previousId.current) : meals;
+    const next = choices[Math.floor(Math.random() * choices.length)];
+    previousId.current = next.id;
+    setMealPick(next);
+    try { sessionStorage.setItem('bangbang-last-meal', next.id); } catch { /* The in-memory pick still works. */ }
+  }, [meals]);
+  useEffect(() => { pickMeal(); }, [pickMeal]);
   const [mealLabel, setMealLabel] = useState('오늘의 식사 후보');
   useEffect(() => {
     let timer: number;
@@ -66,11 +79,14 @@ export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, bu
       <div className="village-heading">
         <span className="book-kicker">뱅뱅사거리 · 우리 동네 맛집 지도</span>
         <h1>{mealLabel}</h1>
-        {mealPick && !busy && !error ? <>
-          <strong className="village-meal-name">{mealPick.name}</strong>
-          <p>{recommendationReasons(mealPick).join(' · ')}</p>
-          <EatplLink className="village-meal-link" placement="list" href={mealPick.eatplUrl} aria-label={`${mealPick.name} 잇플에서 AI 요약·메뉴·지도 보기`}>잇플에서 AI 요약·메뉴·지도 보기 ↗</EatplLink>
-        </> : <p>강남역부터 양재역까지, 오늘은 어디서 먹을까요?<br/>가게 그림을 누르면 음식 종류별 지도가 열려요.</p>}
+        {mealPick && !busy && !error ? <div className="village-meal-card">
+          <div className="village-meal-top"><span>{mealPick.genre}</span>
+            {meals && meals.length > 1 && <button type="button" onClick={pickMeal} aria-label="다른 식사 후보 뽑기"><Shuffle size={15}/> 다시 뽑기</button>}
+          </div>
+          <strong className="village-meal-name" aria-live="polite">{mealPick.name}</strong>
+          <p>{mealPick.address.split(' (')[0]}</p>
+          <EatplLink className="village-meal-link" placement="list" href={mealPick.eatplUrl} aria-label={`${mealPick.name} 잇플에서 AI 요약·메뉴·지도 보기`}>잇플에서 AI 요약·메뉴·지도 보기 <span aria-hidden="true">↗</span></EatplLink>
+        </div> : <p>강남역부터 양재역까지, 오늘은 어디서 먹을까요?<br/>가게 그림을 누르면 음식 종류별 지도가 열려요.</p>}
       </div>
       <div className="village-actions">
         <button className="world-draw" onClick={needsRetry ? onRetry : onDraw} disabled={busy} aria-busy={busy} aria-describedby="village-draw-status">

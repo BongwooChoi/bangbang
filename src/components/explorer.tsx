@@ -101,8 +101,8 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
   const restaurants = activeData?.restaurants ?? [];
   const filtered = useMemo(() => filterRestaurants(activeData?.restaurants ?? [], { category, zone, query: '', sort, localOnly, groupOnly, customerAge, customerAges, customerGender })
     .filter(r => matchesSearchFood(r, searchIntent) && (!savedOnly || saved.includes(r.id)) && (!sharedOnly || sharedIds.includes(r.id))), [activeData, searchIntent, category, zone, sort, localOnly, groupOnly, customerAge, customerAges, customerGender, savedOnly, saved, sharedOnly, sharedIds]);
-  const ranked = useMemo(() => [...filtered].sort(compareRecommended), [filtered]);
-  const recommended = ranked[0];
+  const recommended = useMemo(() => [...filtered].sort(compareRecommended)[0], [filtered]);
+  const mealCandidates = useMemo(() => data?.restaurants.filter(isMealCandidate), [data]);
   const missingShared = sharedIds.filter(id => !restaurants.some(r => r.id === id));
   const savedRows = restaurants.filter(r => saved.includes(r.id));
   function toggleSave(r: Restaurant) {
@@ -207,7 +207,7 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
           <div className="book-spine" aria-hidden="true"/>
           <div className={`book-page-scroll ${bookPageClass}`} ref={bookScroll}>
             <section id="town-page" className="book-leaf town-leaf" hidden={chapter !== 'town'} tabIndex={-1} aria-label="동네 펼치기">
-              {mapCategory !== null ? <CategoryMap onSelect={setMapRestaurant} category={mapCategory} restaurants={filtered} selected={selected} busy={loading} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory, true)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage mealPick={ranked.find(isMealCandidate)} onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
+              {mapCategory !== null ? <CategoryMap onSelect={setMapRestaurant} category={mapCategory} restaurants={filtered} selected={selected} busy={loading} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory, true)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage meals={mealCandidates} onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
             </section>
             <div id="search-page" className={'book-leaf search-leaf ' + (chapter === 'saved' ? 'saved-leaf' : '')} hidden={chapter === 'town'} tabIndex={-1}>
               <div className="chapter-heading"><div><span className="book-kicker">{chapter === 'saved' ? 'CHAPTER 03 · 나의 수첩' : 'CHAPTER 02 · 맛집 찾기'}</span><h2>{chapter === 'saved' ? '다음에 또, 이 집.' : category === 'all' ? '한 끼를 찾아요' : `${categoryInfo(category).label} 맛집 찾기`}</h2></div><div className="chapter-actions">{chapter === 'search' && <button className="chapter-draw" onClick={draw} disabled={loading || searchBusy || !filtered.length} title="현재 조건에 맞는 후보 중 한 곳을 골라 매장 페이지를 열어요"><Shuffle size={16}/><span>한 집 뽑기 ↗</span></button>}<button className="chapter-back" aria-label="동네 책장으로 돌아가기" onClick={() => turnPage('town')}><ArrowRight size={16}/>동네로</button></div></div>
