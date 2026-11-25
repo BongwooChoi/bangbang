@@ -1,7 +1,10 @@
 import { normalizePayload, type Restaurant, type RestaurantResponse } from './restaurants';
 
 // Fixed, bounded local searches, not a user-controlled proxy or dataset crawler.
-export const SEARCH_STREETS = ['강남대로', '서울 서초구 효령로', '서울 강남구 도곡로', '서울 강남구 역삼로', '서울 서초구 서운로'];
+export const SEARCH_STREETS = [
+  '강남대로', '서울 서초구 효령로', '서울 강남구 도곡로', '서울 강남구 역삼로', '서울 서초구 서운로',
+  '서울 강남구 테헤란로', '서울 서초구 서초대로', '서울 서초구 남부순환로', '서울 강남구 남부순환로', '서울 서초구 바우뫼로',
+];
 // All nine provider standard categories, plus the AI cafe category used by our UI.
 // Standard and AI categories are independent systems, not parent/child groups.
 export const SUPPLEMENTAL_GENRES = ['중국음식', '카페', '일반한식', '서양음식', '스넥', '일식회집', '주점', '칵테일바', '갈비전문점', '한정식'] as const;
@@ -39,7 +42,7 @@ export async function loadRestaurants(filters: { merNm?: string; merTpbuzNm?: st
     const restaurants = normalizePayload(payload);
     return { restaurants, atLimit: (payload as { items: unknown[] }).items.length >= 100 };
   }
-  const results = await Promise.allSettled(SEARCH_STREETS.map(location => search(location, filters.merTpbuzNm ?? undefined)));
+  const results = await settleWithLimit(SEARCH_STREETS.map(location => () => search(location, filters.merTpbuzNm ?? undefined)));
   const successful = results.filter(r => r.status === 'fulfilled');
   if (!successful.length) throw new Error('restaurants_unavailable');
   const compactName = filters.merNm?.replace(/\s+/g, '');

@@ -19,7 +19,7 @@ export default function GuidePage() {
       <nav aria-label="현재 위치" className="guide-breadcrumb"><Link href="/">맛집 지도</Link><span aria-hidden="true"> / </span><span>지역·추천 안내</span></nav>
       <span className="guide-eyebrow">우리 동네 한 끼 안내서</span>
       <h1>뱅뱅사거리 점심·회식·카페,<br/>이렇게 골라보세요.</h1>
-      <p className="guide-lead">강남역과 양재역 사이에서 오늘의 한 끼를 고민하는 직장인을 위한 지도예요. 뱅뱅밥이 어디까지 찾고, 무엇을 근거로 추천하는지 알려드릴게요.</p>
+      <p className="guide-lead">강남역·뱅뱅사거리·양재역 일대에서 오늘의 한 끼를 고민하는 직장인을 위한 지도예요. 뱅뱅밥이 어디까지 찾고, 무엇을 근거로 추천하는지 알려드릴게요.</p>
       <p className="guide-date">안내 업데이트 <time dateTime={GUIDE_UPDATED}>{GUIDE_UPDATED}</time></p>
       <h2 id="faq">자주 묻는 질문</h2>
       <nav aria-label="안내 목차" className="guide-toc">{GUIDE_FAQS.map(item => <a key={item.id} href={`#${item.id}`}>{item.question}</a>)}</nav>

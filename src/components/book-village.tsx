@@ -71,8 +71,8 @@ export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, bu
         <g fill="#d9997b">{[{x:185,y:130},{x:423,y:300},{x:64,y:490},{x:502,y:589}].map((p,i)=><g key={i}><circle cx={p.x} cy={p.y} r="4"/><circle cx={p.x+9} cy={p.y+3} r="3"/><circle cx={p.x+3} cy={p.y+10} r="3"/></g>)}</g>
       </svg>
       <span className="paper-town-sign">뱅뱅 맛있는 골목</span>
-      <span className="paper-station station-gangnam"><i>2</i> 강남역 <small>1·8번 출구</small></span>
-      <span className="paper-station station-yangjae"><i>3</i> 양재역 <small>1·4번 출구</small></span>
+      <span className="paper-station station-gangnam"><i>2</i> 강남역 <small>반경 500m</small></span>
+      <span className="paper-station station-yangjae"><i>3</i> 양재역 <small>반경 500m</small></span>
       <span className="paper-intersection">뱅뱅사거리</span><span className="paper-boulevard">강남대로</span>
       {shops.map(shop=><button key={shop.category} className="paper-shop" style={{left:`${shop.x}%`,top:`${shop.y}%`,'--shop-roof':shop.roof} as CSSProperties} onClick={()=>onCategory(shop.category)} aria-label={`${shop.label} 맛집 지도 펼치기`}><PaperShop color={shop.color} roof={shop.roof} emoji={shop.emoji}/><span className="paper-shop-label">{shop.label}<span>↗</span></span></button>)}
       <button className="paper-town-mascot" onClick={onDraw} disabled={busy||!count} aria-label="한 집 뽑기" aria-describedby="village-draw-status"><span className="paper-mascot-bubble">뭐 먹을까요?</span><Mascot size={62}/></button>

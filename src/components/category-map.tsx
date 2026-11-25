@@ -4,13 +4,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ArrowLeft, ArrowRight, List, Minus, Plus, RotateCcw, Shuffle } from 'lucide-react';
 import { Dialog } from './dialog';
-import { AREA_POLYGON, CENTER, type Zone } from '@/lib/geo';
+import { CENTER, STATIONS, type Zone } from '@/lib/geo';
+import { drawSearchArea, SEARCH_AREA_BOUNDS } from '@/lib/map-area';
 import { CATEGORIES, categoryInfo, type Category, type Restaurant } from '@/lib/restaurants';
 import { clusterMapPoints, type MapCluster } from '@/lib/map-clusters';
 
-const AREA_BOUNDS = L.latLngBounds(AREA_POLYGON.map(p => [p.lat, p.lng] as [number, number]));
 function fitArea(map: L.Map, compact: boolean) {
-  map.fitBounds(AREA_BOUNDS, { padding: compact ? [24, 32] : [45, 45], animate: false });
+  map.fitBounds(SEARCH_AREA_BOUNDS, { padding: compact ? [24, 32] : [45, 45], animate: false });
 }
 type Props = { onSelect: (restaurant: Restaurant) => void; category: Category; restaurants: Restaurant[]; selected: Restaurant | null; busy: boolean; error: string; onCategory: (category: Category) => void; onBack: () => void; onList: () => void; onDraw: () => void; onRetry: () => void };
 export default function CategoryMap({ onSelect, category, restaurants, selected, busy, error, onCategory, onBack, onList, onDraw, onRetry }: Props) {
@@ -35,7 +35,7 @@ export default function CategoryMap({ onSelect, category, restaurants, selected,
     const instance = L.map(floor, { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomAnimation: false, fadeAnimation: false, minZoom: 14, maxZoom: 19, zoomSnap: .25 });
     map.current = instance;
     L.tileLayer(process.env.NEXT_PUBLIC_MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, keepBuffer: 1 }).on('tileerror', () => setTileError(true)).on('tileload', () => setTileError(false)).addTo(instance);
-    L.polygon(AREA_POLYGON.map(p => [p.lat, p.lng] as [number, number]), { color: '#647d61', weight: 2, dashArray: '6 6', fillOpacity: .04, interactive: false }).addTo(instance);
+    drawSearchArea(instance, { color: '#647d61', weight: 2, dashArray: '6 6', fillOpacity: .04, interactive: false });
     const changed = () => { setZoom(instance.getZoom()); setView(v => v + 1); };
     instance.on('moveend zoomend', changed);
     fitArea(instance, compact.current);
@@ -71,7 +71,7 @@ export default function CategoryMap({ onSelect, category, restaurants, selected,
     if (!map.current) return;
     if (next === 'all') fitArea(map.current, compact.current);
     else {
-      const center = next === 'gangnam' ? { lat: 37.4956, lng: 127.0288 } : next === 'yangjae' ? { lat: 37.4864, lng: 127.033 } : CENTER;
+      const center = next === 'bangbang' ? CENTER : STATIONS[next];
       map.current.setView([center.lat, center.lng], 17, { animate: false });
     }
   }

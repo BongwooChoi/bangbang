@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { extractSearchIntent } from '../src/lib/ai-search';
 import { SEARCH_MODEL, validateSearchIntent, searchIntentLabels } from '../src/lib/search-intent';
 import { POST } from '../src/app/api/search/route';
+import { SEARCH_STREETS } from '../src/lib/eatpl';
 
 const intent = { merNm: '', merTpbuzNm: '중국음식', category: 'all', excludedCategories: [], zone: 'gangnam', sort: 'recommended', localOnly: true, groupOnly: false, customerAge: 'all', customerGender: 'all', customerAges: [], includedCategories: [], mealOnly: false, unsupported: [] };
 const originalKey = process.env.OPENAI_API_KEY;
@@ -51,7 +52,7 @@ test('search route passes extracted parameters into bounded restaurant API queri
   });
   const response = await POST(new Request('http://localhost:3000/api/search', { method: 'POST', headers: { 'content-type': 'application/json', host: 'example.com', origin: 'https://example.com', 'x-vercel-forwarded-for': '192.0.2.1' }, body: JSON.stringify({ input: '강남역 중식' }) }));
   assert.equal(response.status, 200); assert.equal(response.headers.get('Cache-Control'), 'no-store');
-  assert.equal(calls.length, 5);
+  assert.equal(calls.length, SEARCH_STREETS.length);
   const body = await response.json(); assert.equal(body.intent.zone, 'gangnam');
   assert.deepEqual(body.data.restaurants, []); assert.ok(!JSON.stringify(body).includes('synthetic-test-key'));
 });
@@ -73,7 +74,7 @@ test('an exact catalog name uses the registered spelling and does not acquire fo
   const response = await POST(new Request('https://example.com/api/search', { method: 'POST',
     headers: { 'content-type': 'application/json' }, body: JSON.stringify({ input: '가상 막국수', merchantName: '가상막국수' }) }));
   assert.equal(response.status, 200);
-  assert.equal(mocked.mock.callCount(), 5);
+  assert.equal(mocked.mock.callCount(), SEARCH_STREETS.length);
   const { intent } = await response.json();
   assert.equal(intent.zone, 'all');
   assert.equal(intent.merNm, '가상막국수');

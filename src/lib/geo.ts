@@ -2,6 +2,11 @@ export type Point = { lat: number; lng: number };
 
 // Kakao Local lookup, 2026-11-08. Sources and geometry: docs/data-and-boundary.md.
 export const CENTER: Point = { lat: 37.4895465688273, lng: 127.03166068044 };
+export const STATIONS = {
+  gangnam: { lat: 37.49799, lng: 127.02791 },
+  yangjae: { lat: 37.48448, lng: 127.03390 },
+} satisfies Record<string, Point>;
+export const STATION_RADIUS_METERS = 500;
 export const EXITS = {
   gangnam1: { lat: 37.498076243713754, lng: 127.02875795264038 },
   gangnam8: { lat: 37.497536025092366, lng: 127.02712930848803 },
@@ -26,7 +31,10 @@ const lateral = (p: XY) => (p.x - south.x) * normal.x + (p.y - south.y) * normal
 const constraints = [northSide, southSide, (p: XY) => HALF_WIDTH_METERS - lateral(p), (p: XY) => HALF_WIDTH_METERS + lateral(p)];
 
 export function isInArea(p: Point): boolean {
-  return Number.isFinite(p.lat) && Number.isFinite(p.lng) && constraints.every(fn => fn(xy(p)) >= -0.001);
+  if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng) || Math.abs(p.lat) > 90 || Math.abs(p.lng) > 180) return false;
+  const projected = xy(p);
+  return constraints.every(fn => fn(projected) >= -0.001)
+    || Object.values(STATIONS).some(station => distanceMeters(station, p) <= STATION_RADIUS_METERS);
 }
 // Clip a generous rectangle by the two exit lines and the two corridor sides.
 let vertices: XY[] = [{ x: -3000, y: -3000 }, { x: 3000, y: -3000 }, { x: 3000, y: 3000 }, { x: -3000, y: 3000 }];
@@ -43,7 +51,7 @@ for (const fn of constraints) {
   }
   vertices = next;
 }
-export const AREA_POLYGON = vertices.map(point);
+export const CORRIDOR_POLYGON = vertices.map(point);
 export function distanceMeters(a: Point, b: Point): number {
   const r = Math.PI / 180;
   const dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
@@ -52,6 +60,8 @@ export function distanceMeters(a: Point, b: Point): number {
 }
 export type Zone = 'all' | 'bangbang' | 'gangnam' | 'yangjae';
 export function zoneOf(p: Point): Exclude<Zone, 'all'> {
+  if (distanceMeters(p, STATIONS.yangjae) <= STATION_RADIUS_METERS) return 'yangjae';
+  if (distanceMeters(p, STATIONS.gangnam) <= STATION_RADIUS_METERS) return 'gangnam';
   if (p.lat > CENTER.lat + 0.003) return 'gangnam';
   if (p.lat < CENTER.lat - 0.0023) return 'yangjae';
   return 'bangbang';

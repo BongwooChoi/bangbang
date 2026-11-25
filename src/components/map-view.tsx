@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LocateFixed, Plus, Minus, MapPin } from 'lucide-react';
-import { AREA_POLYGON, CENTER, EXITS, isInArea, type Point, type Zone } from '@/lib/geo';
+import { CENTER, STATIONS, isInArea, type Point, type Zone } from '@/lib/geo';
+import { drawSearchArea } from '@/lib/map-area';
 import { categoryInfo, type Restaurant } from '@/lib/restaurants';
 
 type Props = { onSelect: (restaurant: Restaurant) => void; restaurants: Restaurant[]; selected: Restaurant | null; zone: Zone; onNotice: (message: string) => void };
@@ -37,13 +38,13 @@ export default function MapView({ onSelect, restaurants, selected, zone, onNotic
       attribution: process.env.NEXT_PUBLIC_MAP_ATTRIBUTION || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19, keepBuffer: 1,
     }).on('tileerror', () => setTileError(true)).on('tileload', () => setTileError(false)).addTo(instance);
-    L.polygon(AREA_POLYGON.map(p => [p.lat, p.lng] as [number, number]), { color: '#71997c', weight: 2, dashArray: '6 7', fillColor: '#c6ddba', fillOpacity: 0.1, interactive: false }).addTo(instance);
+    drawSearchArea(instance, { color: '#71997c', weight: 2, dashArray: '6 7', fillColor: '#c6ddba', fillOpacity: 0.1, interactive: false });
     const addLabel = (p: Point, label: string, main = false) => {
       const el = document.createElement('div'); el.className = `landmark-label ${main ? 'main-landmark' : ''}`; el.textContent = label;
       L.marker([p.lat, p.lng], { icon: L.divIcon({ html: el, className: 'landmark-container', iconSize: [120, 30], iconAnchor: [60, 15] }), interactive: false, zIndexOffset: -500 }).addTo(instance);
     };
     addLabel(CENTER, '✦ 뱅뱅사거리', true);
-    addLabel(EXITS.gangnam8, '강남역 1·8번'); addLabel(EXITS.yangjae1, '양재역 1·4번');
+    addLabel(STATIONS.gangnam, '강남역'); addLabel(STATIONS.yangjae, '양재역');
     markers.current = L.layerGroup().addTo(instance);
     const observer = new ResizeObserver(() => {
       if (!container.current?.clientWidth || !container.current.clientHeight) instance.stop();
@@ -73,7 +74,7 @@ export default function MapView({ onSelect, restaurants, selected, zone, onNotic
   }, [restaurants, selected?.id, ready, onSelect]);
   useEffect(() => { if (selected) moveTo(map.current, selected, 17); }, [selected]);
   useEffect(() => {
-    const centers = { all: CENTER, bangbang: CENTER, gangnam: { lat: 37.4956, lng: 127.0288 }, yangjae: { lat: 37.4864, lng: 127.033 } };
+    const centers = { all: CENTER, bangbang: CENTER, ...STATIONS };
     moveTo(map.current, centers[zone], 16);
   }, [zone]);
   function locate() {

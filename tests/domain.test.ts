@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import proj4 from 'proj4';
-import { AREA_POLYGON, CENTER, EXITS, isInArea, distanceMeters } from '../src/lib/geo';
+import { CORRIDOR_POLYGON, CENTER, EXITS, STATIONS, isInArea, zoneOf, distanceMeters } from '../src/lib/geo';
 import { TM128, normalizeRestaurant, normalizePayload, safeEatplUrl, estimatedHours, parseSharedIds, sharePath, filterRestaurants } from '../src/lib/restaurants';
 
 const coords = proj4('EPSG:4326', TM128, [CENTER.lng, CENTER.lat]);
@@ -16,8 +16,19 @@ test('corridor includes center and boundary exits but excludes outside restauran
   assert.equal(isInArea({ lat: CENTER.lat, lng: CENTER.lng + 0.01 }), false);
   assert.equal(isInArea({ lat: CENTER.lat, lng: CENTER.lng - 0.01 }), false);
   assert.equal(isInArea({ lat: NaN, lng: 127 }), false);
-  assert.equal(AREA_POLYGON.length, 4);
-  AREA_POLYGON.forEach(p => assert.equal(isInArea(p), true));
+  CORRIDOR_POLYGON.forEach(p => assert.equal(isInArea(p), true));
+});
+
+test('both station neighborhoods include all directions and keep the radius bounded', () => {
+  for (const [zone, center] of Object.entries(STATIONS)) {
+    for (const [lat, lng] of [[0.00445, 0], [-0.00445, 0], [0, 0.0056], [0, -0.0056]]) {
+      const p = { lat: center.lat + lat, lng: center.lng + lng };
+      assert.equal(isInArea(p), true);
+      assert.equal(zoneOf(p), zone);
+    }
+    assert.equal(isInArea({ ...center, lng: center.lng + 0.006 }), false);
+    assert.equal(isInArea({ ...center, lng: center.lng - 0.006 }), false);
+  }
 });
 test('coordinates roundtrip and straight-line distance do not become walking estimates', () => {
   const result = normalizeRestaurant(example)!;

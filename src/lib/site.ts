@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const SITE_NAME = '뱅뱅밥';
 export const SITE_TITLE = '뱅뱅사거리 맛집 지도 · 강남역·양재역 점심 추천';
-export const SITE_DESCRIPTION = '뱅뱅밥은 강남역과 양재역 사이 뱅뱅사거리 직장인을 위한 AI 맛집 지도입니다. “30대 여성이 많이 찾는 카페”처럼 물어보면 BC카드 결제 데이터 기반 고객층·단골 정보로 후보를 찾습니다.';
+export const SITE_DESCRIPTION = '뱅뱅밥은 강남역·양재역 반경 500m와 뱅뱅사거리 일대의 AI 맛집 지도입니다. “30대 여성이 많이 찾는 카페”처럼 물어보면 BC카드 결제 데이터 기반 고객층·단골 정보로 후보를 찾습니다.';
 export const SOCIAL_TITLE = '뱅뱅밥 · 카드 데이터로 찾는 동네 맛집';
 export const SOCIAL_IMAGE = '/og-paper-village.png';
 export const GUIDE_TITLE = '뱅뱅사거리 점심·회식·카페 찾는 법과 추천 기준';
