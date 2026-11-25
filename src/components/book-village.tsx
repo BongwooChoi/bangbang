@@ -1,7 +1,10 @@
 'use client';
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { ArrowRight, Pause, Play, RefreshCw, Search, Shuffle } from 'lucide-react';
-import { type Category } from '@/lib/restaurants';
+import type { Category, Restaurant } from '@/lib/restaurants';
+import { seoulMealPeriod } from '@/lib/meal-period';
+import { recommendationReasons } from '@/lib/recommendation';
+import { EatplLink } from './eatpl-link';
 import { Mascot } from './mascot';
 
 const shops: {category: Category; label: string; emoji: string; x: number; y: number; color: string; roof: string}[] = [
@@ -37,12 +40,38 @@ export function PaperShop({ color, roof, emoji }: {color:string;roof:string;emoj
   </svg>;
 }
 
-export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, busy, error, onRetry }: { onBrowse: (category: Category) => void; onCategory?: (category: Category) => void; onDraw: () => void; count: number; busy: boolean; error: string; onRetry: () => void }) {
+export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, busy, error, onRetry, mealPick }: { onBrowse: (category: Category) => void; onCategory?: (category: Category) => void; onDraw: () => void; count: number; busy: boolean; error: string; onRetry: () => void; mealPick?: Restaurant }) {
   const [paused,setPaused]=useState(false);
+  const [mealLabel, setMealLabel] = useState('오늘의 식사 후보');
+  useEffect(() => {
+    let timer: number;
+    function syncMeal() {
+      window.clearTimeout(timer);
+      const period = seoulMealPeriod(Date.now());
+      setMealLabel(period.label);
+      timer = window.setTimeout(syncMeal, period.untilChange);
+    }
+    syncMeal();
+    document.addEventListener('visibilitychange', syncMeal);
+    window.addEventListener('pageshow', syncMeal);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', syncMeal);
+      window.removeEventListener('pageshow', syncMeal);
+    };
+  }, []);
   const needsRetry = Boolean(error) || count === 0;
   return <div className={`village-chapter paper-village ${paused?'village-paused':''}`}>
     <div className="village-intro">
-      <div className="village-heading"><span className="book-kicker">CHAPTER 01 · 우리 동네 한 끼</span><h1>뱅뱅사거리<br/>점심 맛집 지도</h1><p>강남역부터 양재역까지, 오늘은 어디서 먹을까요?<br/>가게 그림을 누르면 음식 종류별 지도가 열려요.</p></div>
+      <div className="village-heading">
+        <span className="book-kicker">뱅뱅사거리 · 우리 동네 맛집 지도</span>
+        <h1>{mealLabel}</h1>
+        {mealPick && !busy && !error ? <>
+          <strong className="village-meal-name">{mealPick.name}</strong>
+          <p>{recommendationReasons(mealPick).join(' · ')}</p>
+          <EatplLink className="village-meal-link" placement="list" href={mealPick.eatplUrl} aria-label={`${mealPick.name} 잇플에서 AI 요약·메뉴·지도 보기`}>잇플에서 AI 요약·메뉴·지도 보기 ↗</EatplLink>
+        </> : <p>강남역부터 양재역까지, 오늘은 어디서 먹을까요?<br/>가게 그림을 누르면 음식 종류별 지도가 열려요.</p>}
+      </div>
       <div className="village-actions">
         <button className="world-draw" onClick={needsRetry ? onRetry : onDraw} disabled={busy} aria-busy={busy} aria-describedby="village-draw-status">
           {busy || needsRetry ? <RefreshCw size={21} className={busy ? 'spin' : undefined}/> : <Shuffle size={21}/>}

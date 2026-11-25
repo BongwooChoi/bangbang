@@ -158,3 +158,5 @@
     min-height: 44px;
   }
 }
+.village-meal-name { display: block; overflow-wrap: anywhere; color: #394b38; }
+.village-meal-link { display: inline-flex; align-items: center; min-height: 44px; pointer-events: auto; color: #37583f; font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
