@@ -4,9 +4,54 @@ import { loadRestaurants, SEARCH_STREETS, SUPPLEMENTAL_GENRES, MAX_CONCURRENT_SE
 import proj4 from 'proj4';
 import { CENTER, isInArea } from '../src/lib/geo';
 import { TM128 } from '../src/lib/restaurants';
+import { GET } from '../src/app/api/restaurants/route';
+import { directoryStreamType, readDirectory } from '../src/lib/restaurant-stream';
 
 const [x, y] = proj4('EPSG:4326', TM128, [CENTER.lng, CENTER.lat]);
 const fixture = (id: string, genre = '카페') => ({ merNm: `가상 ${id}`, merAddr: '테스트 주소', merTpbuzNm: genre, merUrl: `https://web.paybooc.ai/mer/web/profile/${id}`, xaxsVal: String(x), yaxsVal: String(y) });
+
+test('directory streams usable base rows before blocked supplements, then matches the complete JSON catalog', async t => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async (url: URL) => {
+    calls++;
+    if (url.searchParams.has('merTpbuzNm')) {
+      await gate;
+      return Response.json({ items: [fixture('base'), fixture('extra')] });
+    }
+    return Response.json({ items: url.searchParams.get('location') === SEARCH_STREETS[0] ? Array(100).fill(fixture('base')) : [] });
+  });
+  const request = new Request('https://example.test/api/restaurants', { headers: { Accept: directoryStreamType } });
+  const response = await GET(request);
+  assert.match(response.headers.get('Content-Type')!, /ndjson/);
+  let receivedBase = false;
+  const complete = await readDirectory(response, data => {
+    assert.deepEqual(data.restaurants.map(r => r.id), ['base']);
+    receivedBase = true;
+    release();
+  });
+  assert.ok(receivedBase);
+  assert.equal(calls, SEARCH_STREETS.length + SUPPLEMENTAL_GENRES.length);
+  assert.deepEqual(complete.restaurants.map(r => r.id), ['base', 'extra']);
+  const legacy = await GET(new Request(request.url));
+  assert.deepEqual((await legacy.json()).restaurants, complete.restaurants);
+});
+
+test('directory reader handles fragmented Korean UTF-8 and rejects an interrupted preview', async () => {
+  const base = { restaurants: [], fetchedAt: '한글', partial: false };
+  const line = JSON.stringify({ phase: 'base', batch: base }) + '\n';
+  const bytes = new TextEncoder().encode(line + JSON.stringify({ phase: 'complete', batch: base }));
+  const body = new ReadableStream({ start(controller) {
+    for (const byte of bytes) controller.enqueue(Uint8Array.of(byte));
+    controller.close();
+  } });
+  const headers = { 'Content-Type': directoryStreamType };
+  assert.deepEqual(await readDirectory(new Response(body, { headers }), data => assert.deepEqual(data, base)), base);
+  let receivedBase = false;
+  await assert.rejects(readDirectory(new Response(line, { headers }), () => { receivedBase = true; }));
+  assert.ok(receivedBase);
+});
 
 test('partial upstream failures preserve valid responses and report partial status', async t => {
   let calls = 0;

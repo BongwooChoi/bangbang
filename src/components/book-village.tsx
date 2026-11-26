@@ -54,7 +54,9 @@ export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, bu
     setMealPick(next);
     try { sessionStorage.setItem('bangbang-last-meal', next.id); } catch { /* The in-memory pick still works. */ }
   }, [meals]);
-  useEffect(() => { pickMeal(); }, [pickMeal]);
+  useEffect(() => {
+    if (!mealPick || !meals?.some(row => row.id === mealPick.id)) pickMeal();
+  }, [mealPick, meals, pickMeal]);
   const [mealLabel, setMealLabel] = useState('오늘의 식사 후보');
   useEffect(() => {
     let timer: number;

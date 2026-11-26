@@ -15,6 +15,7 @@ import { MAX_SEARCH_LENGTH, searchIntentLabels, type SearchIntent } from '@/lib/
 import { EatplLink, openEatpl } from './eatpl-link';
 import { isMealCandidate, matchesSearchFood } from '@/lib/search-filters';
 import { knownMerchantName, includeCatalogMatches } from '@/lib/merchant-search';
+import { directoryError, directoryStreamType, readDirectory } from '@/lib/restaurant-stream';
 import { BrowserNotice } from './browser-notice';
 import { RestaurantNextStep } from './restaurant-next-step';
 import { BookVillage } from './book-village';
@@ -32,6 +33,8 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
   const bookScroll = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<RestaurantResponse | undefined>(initialData);
   const [loading, setLoading] = useState(!initialData);
+  const [enriching, setEnriching] = useState(false);
+  const directoryRequest = useRef<AbortController | null>(null);
   const [error, setError] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchData, setSearchData] = useState<RestaurantResponse>();
@@ -65,17 +68,34 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
   const [nativeShare, setNativeShare] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState<ServiceWorker | null>(null);
   const toast = useCallback((message: string) => setNotice(message), []);
-  const refresh = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true); setError('');
+  const refresh = useCallback(async () => {
+    directoryRequest.current?.abort();
+    const controller = new AbortController();
+    directoryRequest.current = controller;
+    const { signal } = controller;
+    let preview: RestaurantResponse | undefined;
+    setLoading(true); setEnriching(false); setError('');
     try {
-      const response = await fetch('/api/restaurants', { cache: 'no-store', signal });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || '음식점 정보를 불러오지 못했어요.');
-      setData(result);
-    } catch (err) { if (!(err instanceof Error && err.name === 'AbortError')) setError(err instanceof Error ? err.message : '연결을 확인하고 다시 시도해 주세요.'); }
-    finally { if (!signal?.aborted) setLoading(false); }
+      const response = await fetch('/api/restaurants', { cache: 'no-store', signal, headers: { Accept: directoryStreamType } });
+      const result = await readDirectory(response, base => {
+        if (signal.aborted) return;
+        preview = base;
+        setData(base); setLoading(false); setEnriching(true);
+      });
+      if (!signal.aborted) setData(result);
+    } catch {
+      if (!signal.aborted) {
+        if (preview) setData({ ...preview, partial: true });
+        else setError(directoryError);
+      }
+    } finally {
+      if (!signal.aborted) { setLoading(false); setEnriching(false); directoryRequest.current = null; }
+    }
   }, []);
-  useEffect(() => { if (initialData) return; const controller = new AbortController(); void refresh(controller.signal); return () => controller.abort(); }, [initialData, refresh]);
+  useEffect(() => {
+    if (!initialData) void refresh();
+    return () => directoryRequest.current?.abort();
+  }, [initialData, refresh]);
   useEffect(() => {
     setMounted(true); setNativeShare(typeof navigator.share === 'function');
     try { const values = JSON.parse(localStorage.getItem('bangbang-saved') || '[]'); if (Array.isArray(values)) setSaved(values.filter((id: unknown) => typeof id === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(id)).slice(0, 50)); } catch { /* Private browsing still supports browsing. */ }
@@ -96,12 +116,15 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
   useEffect(() => { setCopied(false); }, [shareRows]);
   useEffect(() => () => searchRequest.current?.abort(), []);
   useEffect(() => { setVisibleCount(20); }, [category, zone, searchData, sort, localOnly, groupOnly, customerAge, customerAges, customerGender, savedOnly, sharedOnly]);
-  const activeData = searchData ?? data;
+  const activeData = useMemo(() => searchData && searchIntent
+    ? { ...searchData, restaurants: includeCatalogMatches(searchData.restaurants, data?.restaurants ?? [], searchIntent) }
+    : data, [data, searchData, searchIntent]);
   const visibleError = searchData ? '' : error;
   const restaurants = activeData?.restaurants ?? [];
   const filtered = useMemo(() => filterRestaurants(activeData?.restaurants ?? [], { category, zone, query: '', sort, localOnly, groupOnly, customerAge, customerAges, customerGender })
     .filter(r => matchesSearchFood(r, searchIntent) && (!savedOnly || saved.includes(r.id)) && (!sharedOnly || sharedIds.includes(r.id))), [activeData, searchIntent, category, zone, sort, localOnly, groupOnly, customerAge, customerAges, customerGender, savedOnly, saved, sharedOnly, sharedIds]);
   const recommended = useMemo(() => [...filtered].sort(compareRecommended)[0], [filtered]);
+  const waitingForMatches = enriching && !searchData && filtered.length === 0;
   const mealCandidates = useMemo(() => data?.restaurants.filter(isMealCandidate), [data]);
   const missingShared = sharedIds.filter(id => !restaurants.some(r => r.id === id));
   const savedRows = restaurants.filter(r => saved.includes(r.id));
@@ -150,7 +173,7 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
       if (!response.ok) throw new Error(result.error || '검색을 잠시 쉬고 있어요. 다시 시도해 주세요.');
       if (controller.signal.aborted) return;
       const intent: SearchIntent = result.intent;
-      setSearchData({ ...result.data, restaurants: includeCatalogMatches(result.data.restaurants, catalog, intent) });
+      setSearchData(result.data);
       setSearchIntent(intent); setCategory(intent.category); setZone(intent.zone); setSort(intent.sort); setLocalOnly(intent.localOnly); setGroupOnly(intent.groupOnly); setCustomerAge(intent.customerAge); setCustomerAges(intent.customerAges); setCustomerGender(intent.customerGender); setSavedOnly(false); setSharedOnly(false); setError(''); setSelected(null); setMobileTab('list');
     } catch (err) { if (!controller.signal.aborted) setSearchError(err instanceof Error ? err.message : '검색을 다시 시도해 주세요.'); }
     finally { if (searchRequest.current === controller) { setSearchBusy(false); searchRequest.current = null; } }
@@ -193,7 +216,7 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
     </header>
     <main className="book-experience" data-chapter={chapter}>
       {sharedOnly && <div className="shared-banner"><span>💌 함께 고른 맛집 {sharedIds.length}곳이 도착했어요!</span><button onClick={() => setSharedOnly(false)}>동네 전체 보기 <ArrowRight size={15}/></button></div>}
-      {sharedOnly && !loading && missingShared.length > 0 && <p className="inline-notice">공유된 후보 중 {missingShared.length}곳은 현재 검색 결과에서 찾지 못했어요. 다른 후보를 둘러보세요.</p>}
+      {sharedOnly && !loading && !enriching && missingShared.length > 0 && <p className="inline-notice">공유된 후보 중 {missingShared.length}곳은 현재 검색 결과에서 찾지 못했어요. 다른 후보를 둘러보세요.</p>}
       {activeData?.partial && <p className="inline-notice">일부 음식점 정보를 가져오지 못했어요. 현재 확인된 후보부터 보여드려요.</p>}
       {updateAvailable && <div className="shared-banner"><span>새로운 뱅뱅밥이 준비됐어요.</span><button onClick={() => { navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true }); updateAvailable.postMessage({ type: 'SKIP_WAITING' }); }}>업데이트하기</button></div>}
       <BrowserNotice/>
@@ -207,7 +230,7 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
           <div className="book-spine" aria-hidden="true"/>
           <div className={`book-page-scroll ${bookPageClass}`} ref={bookScroll}>
             <section id="town-page" className="book-leaf town-leaf" hidden={chapter !== 'town'} tabIndex={-1} aria-label="동네 펼치기">
-              {mapCategory !== null ? <CategoryMap onSelect={setMapRestaurant} category={mapCategory} restaurants={filtered} selected={selected} busy={loading} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory, true)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage meals={mealCandidates} onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
+              {mapCategory !== null ? <CategoryMap onSelect={setMapRestaurant} category={mapCategory} restaurants={filtered} selected={selected} busy={loading || waitingForMatches} error={visibleError} onCategory={next => { setMapCategory(next); setCategory(next); }} onBack={() => turnPage('town')} onList={() => browseCategory(mapCategory, true)} onDraw={draw} onRetry={() => void refresh()}/> : <BookVillage meals={mealCandidates} onBrowse={browseCategory} onCategory={openCategoryMap} onDraw={draw} count={filtered.length} busy={loading || searchBusy} error={visibleError} onRetry={() => void refresh()}/>}
             </section>
             <div id="search-page" className={'book-leaf search-leaf ' + (chapter === 'saved' ? 'saved-leaf' : '')} hidden={chapter === 'town'} tabIndex={-1}>
               <div className="chapter-heading"><div><span className="book-kicker">{chapter === 'saved' ? 'CHAPTER 03 · 나의 수첩' : 'CHAPTER 02 · 맛집 찾기'}</span><h2>{chapter === 'saved' ? '다음에 또, 이 집.' : category === 'all' ? '한 끼를 찾아요' : `${categoryInfo(category).label} 맛집 찾기`}</h2></div><div className="chapter-actions">{chapter === 'search' && <button className="chapter-draw" onClick={draw} disabled={loading || searchBusy || !filtered.length} title="현재 조건에 맞는 후보 중 한 곳을 골라 매장 페이지를 열어요"><Shuffle size={16}/><span>한 집 뽑기 ↗</span></button>}<button className="chapter-back" aria-label="동네 책장으로 돌아가기" onClick={() => turnPage('town')}><ArrowRight size={16}/>동네로</button></div></div>
@@ -227,11 +250,11 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
         </details><div className="mobile-view-switch"><button aria-pressed={mobileTab === 'list'} onClick={() => { setMobileTab('list'); focusBookPage('results'); }}><List size={16}/>목록으로</button><button aria-pressed={mobileTab === 'map'} onClick={() => setMobileTab('map')}><MapIcon size={16}/>지도로</button></div>
         <div className={`explore-grid mobile-${mobileTab}`}>
           <div className="results-panel" id="results" tabIndex={-1}>
-            <div className="results-heading"><h2>{savedOnly ? '담아둔 맛집' : sharedOnly ? '함께 고른 맛집' : '오늘의 맛집 후보'} <span>{loading && !data ? '…' : filtered.length}</span></h2><div className="result-actions"><button className="icon-button" aria-label="음식점 새로고침" onClick={() => void (searchIntent ? search() : refresh())} disabled={loading || searchBusy}><RefreshCw size={15} className={loading ? 'spin' : ''}/></button><label className="sort-select"><ArrowDownUp size={13}/><span className="sr-only">정렬</span><select value={sort} onChange={e => setSort(e.target.value)}><option value="recommended">뱅뱅 추천순</option><option value="distance">사거리 가까운 순</option><option value="rank">지역 매출 상위순</option></select><ChevronDown size={12}/></label></div></div>
+            <div className="results-heading"><h2>{savedOnly ? '담아둔 맛집' : sharedOnly ? '함께 고른 맛집' : '오늘의 맛집 후보'} <span>{loading && !data ? '…' : filtered.length}</span></h2><div className="result-actions"><button className="icon-button" aria-label="음식점 새로고침" onClick={() => void (searchIntent ? search() : refresh())} disabled={loading || enriching || searchBusy}><RefreshCw size={15} className={loading ? 'spin' : ''}/></button><label className="sort-select"><ArrowDownUp size={13}/><span className="sr-only">정렬</span><select value={sort} onChange={e => setSort(e.target.value)}><option value="recommended">뱅뱅 추천순</option><option value="distance">사거리 가까운 순</option><option value="rank">지역 매출 상위순</option></select><ChevronDown size={12}/></label></div></div>
             <p className="results-caption">{sort === 'recommended' ? '가까움 + 지역 매출 순위 + 동네 단골을 함께 살폈어요.' : '거리 기준은 뱅뱅사거리에서의 직선거리예요.'}</p>
             {savedOnly && savedRows.length > 0 && <button className="saved-share" onClick={() => setShareRows(savedRows.slice(0, 5))}><Share2 size={15}/> 담은 맛집 함께 공유하기 {savedRows.length > 5 && '(앞의 5곳)'}</button>}
-            <div className="results-list" aria-busy={loading || searchBusy}>
-              {loading && !data ? <div className="loading-state"><Mascot size={85}/><h3>맛있는 한 끼를 찾고 있어요</h3><p>동네 음식점 정보를 확인하는 중이에요.</p><span className="loading-dots">● ● ●</span></div> : visibleError ? <div className="empty-state"><Mascot size={80} happy={false}/><h3>잠깐, 연결이 쉬어가고 있어요</h3><p>{visibleError}</p><button className="primary-button" onClick={() => void refresh()}>다시 불러오기</button></div> : filtered.length === 0 ? <div className="empty-state"><Mascot size={80} happy={false}/><h3>{savedOnly ? '마음에 드는 곳을 담아보세요' : searchIntent?.merNm ? `현재 조건에 맞는 ‘${searchIntent.merNm}’ 매장이 없어요` : '모든 조건이 맞는 후보는 아직 없어요'}</h3><p>{savedOnly ? '카드의 책갈피를 누르면 이곳에 모여요. 저장한 곳도 현재 조회 결과에 있어야 표시돼요.'  : searchIntent?.merNm ? '지점명을 빼거나 검색 조건을 줄여보세요.' : '지역이나 음식 종류를 바꿔 찾아볼까요?'}</p>{searchIntent && (customerAge !== 'all' || customerAges.length > 0 || customerGender !== 'all') && <button className="primary-button" onClick={() => {setCustomerAge('all');setCustomerAges([]);setCustomerGender('all');setSearchIntent(current => current ? {...current,customerAge:'all',customerAges:[],customerGender:'all'} : current);}}>고객층 조건 풀고 보기</button>}<button className="primary-button" onClick={() => browseCategory('all')}>동네 맛집 둘러보기</button></div> : filtered.slice(0, visibleCount).map(r => <article key={r.id} className={`restaurant-card ${selected?.id === r.id ? 'card-selected' : ''}`}>
+            <div className="results-list" aria-busy={loading || waitingForMatches || searchBusy}>
+              {(loading && !data) || waitingForMatches ? <div className="loading-state"><Mascot size={85}/><h3>맛있는 한 끼를 찾고 있어요</h3><p>동네 음식점 정보를 확인하는 중이에요.</p><span className="loading-dots">● ● ●</span></div> : visibleError ? <div className="empty-state"><Mascot size={80} happy={false}/><h3>잠깐, 연결이 쉬어가고 있어요</h3><p>{visibleError}</p><button className="primary-button" onClick={() => void refresh()}>다시 불러오기</button></div> : filtered.length === 0 ? <div className="empty-state"><Mascot size={80} happy={false}/><h3>{savedOnly ? '마음에 드는 곳을 담아보세요' : searchIntent?.merNm ? `현재 조건에 맞는 ‘${searchIntent.merNm}’ 매장이 없어요` : '모든 조건이 맞는 후보는 아직 없어요'}</h3><p>{savedOnly ? '카드의 책갈피를 누르면 이곳에 모여요. 저장한 곳도 현재 조회 결과에 있어야 표시돼요.'  : searchIntent?.merNm ? '지점명을 빼거나 검색 조건을 줄여보세요.' : '지역이나 음식 종류를 바꿔 찾아볼까요?'}</p>{searchIntent && (customerAge !== 'all' || customerAges.length > 0 || customerGender !== 'all') && <button className="primary-button" onClick={() => {setCustomerAge('all');setCustomerAges([]);setCustomerGender('all');setSearchIntent(current => current ? {...current,customerAge:'all',customerAges:[],customerGender:'all'} : current);}}>고객층 조건 풀고 보기</button>}<button className="primary-button" onClick={() => browseCategory('all')}>동네 맛집 둘러보기</button></div> : filtered.slice(0, visibleCount).map(r => <article key={r.id} className={`restaurant-card ${selected?.id === r.id ? 'card-selected' : ''}`}>
                 <button className={`food-art food-art-${r.category}`} onClick={() => setSelected(r)} aria-label={`${r.name} 상세 보기`}><span>{categoryInfo(r.category).emoji}</span><small>{r.genre}</small></button>
                 <div className="card-main"><div className="card-top"><span className="card-area">{zones.find(z => z.id === r.zone)?.label} · {distance(r)}</span><button className={`save-button ${saved.includes(r.id) ? 'is-saved' : ''}`} aria-label={`${r.name} ${saved.includes(r.id) ? '담기 해제' : '담기'}`} aria-pressed={saved.includes(r.id)} onClick={() => toggleSave(r)}><Bookmark size={18} fill={saved.includes(r.id) ? 'currentColor' : 'none'}/></button></div><button className="restaurant-name" onClick={() => setSelected(r)}>{r.name}<ChevronRight size={15}/></button><div className="card-badges">{r.localFavorite && <span className="badge-green">🌱 동네 단골</span>}{r.localRank !== null && <span className="badge-peach">지역 상위 {r.localRank}%</span>}{r.groupDining && <span className="badge-purple">회식 후보</span>}</div><RecommendationReasons restaurant={r}/><BusySummary restaurant={r}/><CustomerMatch groups={r.customerGroups} age={customerAge} ages={customerAges} gender={customerGender}/><div className="card-bottom"><span>{r.genre}</span><button onClick={() => setShareRows([r])} aria-label={`${r.name} 공유`}><Share2 size={13}/> 공유</button></div><EatplLink className="card-visit" href={r.eatplUrl} placement="list" aria-label={`${r.name} 잇플에서 AI 요약·메뉴·지도 보기`}>AI 요약·메뉴·지도 보기 <span>잇플 <ExternalLink size={13}/></span></EatplLink></div>
               </article>)}
@@ -239,7 +262,7 @@ export default function Explorer({ initialData, sharedIds = noSharedIds, childre
             </div>
             <div className="data-note"><span>🌾</span><p>eat.pl 잇플 · BC카드 결제 데이터 기반<br/><small>최근 1개월 기준 · 매출 백분위는 낮을수록 상위</small></p></div>
           </div>
-          <div className="map-panel">{!loading && !error && data && filtered.length === 0 && <div className="map-empty-state" role="status"><p>이 조건에 맞는 맛집은 아직 없어요.<br/>고객층이나 다른 필터를 바꿔볼까요?</p><button className="secondary-button" onClick={reset}>필터 모두 초기화</button></div>}{!loading && !error && <RecommendedPick restaurant={recommended} onSelect={setSelected}/>}<MapView onSelect={setMapRestaurant} restaurants={filtered} selected={selected} zone={zone} onNotice={toast}/><div className="map-footer"><span><i/> 강남역·양재역 반경 500m와 뱅뱅사거리</span><button onClick={() => setInfoOpen(true)}>범위 안내 <Info size={13}/></button></div></div>
+          <div className="map-panel">{!loading && !error && data && !waitingForMatches && filtered.length === 0 && <div className="map-empty-state" role="status"><p>이 조건에 맞는 맛집은 아직 없어요.<br/>고객층이나 다른 필터를 바꿔볼까요?</p><button className="secondary-button" onClick={reset}>필터 모두 초기화</button></div>}{!loading && !error && <RecommendedPick restaurant={recommended} onSelect={setSelected}/>}<MapView onSelect={setMapRestaurant} restaurants={filtered} selected={selected} zone={zone} onNotice={toast}/><div className="map-footer"><span><i/> 강남역·양재역 반경 500m와 뱅뱅사거리</span><button onClick={() => setInfoOpen(true)}>범위 안내 <Info size={13}/></button></div></div>
         </div>
       </section>
             </div>

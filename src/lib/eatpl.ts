@@ -22,10 +22,24 @@ async function settleWithLimit<T>(jobs: (() => Promise<T>)[]): Promise<PromiseSe
   }));
   return results;
 }
-export async function loadRestaurants(filters: { merNm?: string; merTpbuzNm?: string | null } = {}): Promise<RestaurantResponse> {
+type RoadResult = { restaurants: Restaurant[]; atLimit: boolean };
+
+function snapshot(results: PromiseSettledResult<RoadResult>[]): RestaurantResponse {
+  const unique = new Map<string, Restaurant>();
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      for (const item of result.value.restaurants) if (!unique.has(item.id)) unique.set(item.id, item);
+    }
+  }
+  return { restaurants: [...unique.values()].sort((a, b) => a.distance - b.distance), fetchedAt: new Date().toISOString(), partial: results.some(r => r.status === 'rejected') };
+}
+
+export async function loadRestaurants(filters: { merNm?: string; merTpbuzNm?: string | null } = {},
+  options: { signal?: AbortSignal; onBase?: (data: RestaurantResponse) => void } = {}): Promise<RestaurantResponse> {
   const base = (process.env.KSKILL_PROXY_BASE_URL || 'https://k-skill-proxy.nomadamas.org').replace(/\/$/, '');
   // Base and supplemental phases share a deadline within the route's 30s budget.
-  const deadline = AbortSignal.timeout(24_000);
+  const timeout = AbortSignal.timeout(24_000);
+  const deadline = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
   let rateLimited = false;
   async function search(location: string, genre?: string, merchant = filters.merNm) {
     deadline.throwIfAborted();
@@ -55,14 +69,11 @@ export async function loadRestaurants(filters: { merNm?: string; merTpbuzNm?: st
   // A full response can omit lower-ranked categories before our boundary filter.
   // Only saturated roads need category searches; keep the same geography.
   const cappedStreets = filters.merTpbuzNm ? [] : SEARCH_STREETS.filter((_, i) => results[i].status === 'fulfilled' && results[i].value.atLimit);
+  if (options.onBase && cappedStreets.length && !deadline.aborted && !rateLimited) {
+    const baseData = snapshot([...results, ...nameMatches]);
+    if (baseData.restaurants.length) options.onBase(baseData);
+  }
   const supplements = await settleWithLimit(SUPPLEMENTAL_GENRES.flatMap(genre =>
     cappedStreets.map(location => () => search(location, genre))));
-  const unique = new Map<string, Restaurant>();
-  const allResults = [...results, ...nameMatches, ...supplements];
-  allResults.forEach(result => {
-    if (result.status === 'fulfilled') result.value.restaurants.forEach(item => {
-      if (!unique.has(item.id)) unique.set(item.id, item);
-    });
-  });
-  return { restaurants: [...unique.values()].sort((a, b) => a.distance - b.distance), fetchedAt: new Date().toISOString(), partial: allResults.some(r => r.status === 'rejected') };
+  return snapshot([...results, ...nameMatches, ...supplements]);
 }
