@@ -35,3 +35,29 @@ body:has(.book-experience) .dialog{border:8px solid #6c8268;border-radius:5px 18
 
 /* All shop faces share the same 88 × 70 footprint and 90px wall height. */
 .shop-wall{left:0;top:auto;transform-origin:50% 100%}.shop-front{bottom:0}.shop-back{bottom:70px}.shop-left,.shop-right{bottom:0;transform-origin:0 100%}.shop-right{left:88px}.shop-roof{left:-5px;right:auto;top:-5px;bottom:auto;width:98px;height:80px;transform-origin:center}.shop-roof-edge{left:-5px;right:auto;width:98px}.road-vertical{left:315px}.road-vertical:after{left:25px}.village-crosswalk{left:310px}.tree-one{left:12px;top:165px}
+
+.search-leaf .category-row {
+  flex-wrap: wrap;
+  margin-right: 0;
+  padding: 12px 0 4px;
+  overflow: visible;
+}
+.category-chip small { font-size: 0.9em; font-variant-numeric: tabular-nums; }
+.category-pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  color: #455c45;
+  font-size: 13px;
+}
+.category-pick .chapter-draw {
+  padding: 8px 14px;
+  background: #4d694e;
+  border-color: #405a42;
+  color: white;
+  font-size: 13px;
+}
+.category-pick .chapter-draw:disabled { opacity: 0.55; }
