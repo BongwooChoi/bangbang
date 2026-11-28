@@ -87,7 +87,7 @@ export function BookVillage({ onBrowse, onCategory = onBrowse, onDraw, count, bu
           </div>
           <strong className="village-meal-name" aria-live="polite">{mealPick.name}</strong>
           <p>{mealPick.address.split(' (')[0]}</p>
-          <EatplLink className="village-meal-link" placement="list" href={mealPick.eatplUrl} aria-label={`${mealPick.name} 잇플에서 AI 요약·메뉴·지도 보기`}>잇플에서 AI 요약·메뉴·지도 보기 <span aria-hidden="true">↗</span></EatplLink>
+          <EatplLink className="village-meal-link" placement="list" href={mealPick.eatplUrl} aria-label={`${mealPick.name} AI 요약·메뉴·지도 보기`}>AI 요약·메뉴·지도 보기 <span aria-hidden="true">↗</span></EatplLink>
         </div> : <p>강남역부터 양재역까지, 오늘은 어디서 먹을까요?<br/>가게 그림을 누르면 음식 종류별 지도가 열려요.</p>}
       </div>
       <div className="village-actions">
